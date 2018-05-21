@@ -1,0 +1,34 @@
+early_commands:
+ 98_update: apt-get update
+ 99_upgrade: DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade --assume-yes
+
+partitioning_commands:
+ 10_partition: curtin block-meta custom
+
+network_commands:
+ 10_network: curtin net-meta --device=eth0 dhcp
+
+sources:
+ 05_primary: 
+  uri: "http://cloud-images.ubuntu.com/releases/precise/release/ubuntu-12.04-server-cloudimg-amd64-root.tar.gz"
+  type: "tgz"
+
+storage:
+  version: 1
+  config:
+    - id: sdd
+      type: disk
+      ptable: gpt
+      serial: QM00002
+      model: QEMU_HARDDISK
+      path: /dev/sdd
+    - id: system-boot
+      type: partition
+      number: 1
+      ptable: vfat
+      size: 128M
+    - id: writable
+      type: partition
+      number: 2
+      ptable: ext4
+      size: 420M
