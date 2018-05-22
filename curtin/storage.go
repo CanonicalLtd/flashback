@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -16,8 +15,19 @@ const (
 	base = "/sys/class/block"
 )
 
-func sysBlockPath(devName string) string {
-	return path.Join(base, devName)
+// DiskPath defines a disk path in its different formats
+type DiskPath struct {
+	Device       string // sdd
+	DevicePath   string // /dev/sdd
+	SysBlockPath string // /sys/class/block/sdd
+}
+
+func deviceNameFromPath(path string) string {
+	return filepath.Base(path)
+}
+
+func sysBlockFromPath(path string) string {
+	return filepath.Join(base, deviceNameFromPath(path))
 }
 
 func sysfsPartitions(devPath string) ([]string, error) {

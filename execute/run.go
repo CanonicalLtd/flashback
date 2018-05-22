@@ -40,8 +40,7 @@ func (cmd RunCommand) Execute(args []string) error {
 }
 
 func partition(config curtin.Config) error {
-	for k, v := range config.PartitioningCommands {
-		fmt.Println("---", k, v)
+	for _, v := range config.PartitioningCommands {
 		args, err := flags.ParseArgs(&Execution, strings.Split(v, " ")[1:])
 		if err != nil {
 			return err

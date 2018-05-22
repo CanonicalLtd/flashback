@@ -7,7 +7,6 @@ package curtin
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"syscall"
 )
 
@@ -22,6 +21,13 @@ const (
 )
 
 func diskHandler(blockMeta PartitionCommand, item StorageItem) error {
+	// Define the disk path using the different formats
+	diskPath := DiskPath{
+		Device:       deviceNameFromPath(item.Path),
+		DevicePath:   item.Path,
+		SysBlockPath: sysBlockFromPath(item.Path),
+	}
+
 	if item.Preserve {
 		fmt.Println("Not implemented: ignore the `preserve` flag")
 	}
@@ -36,14 +42,13 @@ func diskHandler(blockMeta PartitionCommand, item StorageItem) error {
 			// n.b. wipe_volume wipes 1M at front and end of the disk.
 			// This could destroy disk data in filesystems that lived
 			// there.
-			// Note: using the `path` instead of the `id`
-			fmt.Println("---wipeVolume", item.PTable, item.Path)
-			if err := wipeVolume(item.Path, wipeModeSuperblock, true); err != nil {
+			fmt.Printf("Wipe the MBR and GPT on the disk `%s`", diskPath.Device)
+			if err := wipeVolume(diskPath, wipeModeSuperblock, true); err != nil {
 				fmt.Println(err)
 				return err
 			}
 		}
-		fmt.Println("Not implemented: label the disk")
+		fmt.Println("Not implemented: remove holders and label the disk")
 	}
 
 	return nil
@@ -59,58 +64,36 @@ func diskHandler(blockMeta PartitionCommand, item StorageItem) error {
 //	superblock-recursive: zero the beginning of the volume, the end of the
 //		volume and beginning and end of any partitions that are known to be on this device.
 //	exclusive: boolean to control how path is opened
-func wipeVolume(path, mode string, exclusive bool) error {
+func wipeVolume(diskPath DiskPath, mode string, exclusive bool) error {
 	if mode == wipeModeSuperblock {
-		return quickZero(path, false, exclusive)
+		return quickZeroSuperblock(diskPath, exclusive)
 	}
 	return fmt.Errorf("Wipe not implemented for mode `%s`", mode)
 }
 
-// quickZero zeroes 1M at front, 1M at end, and 1M at front if this is a block device and
-// partitions is true, then zero 1M at front and end of each partition.
-func quickZero(path string, partitions, exclusive bool) error {
-	fmt.Println("---quickZero", path)
-	//offsets := []int{0, -zeroSize}
+// quickZeroSuperblock zeroes 1M at front, 1M at end, and 1M at front if this is a block device
+func quickZeroSuperblock(diskPath DiskPath, exclusive bool) error {
+	fmt.Println("---quickZero", diskPath.DevicePath)
+	offsets := []int{0, -zeroSize}
 
 	// Check this path is a block device or file
-	isBlk, err := isBlockDevice(path)
+	isBlk, err := isBlockDevice(diskPath.DevicePath)
 	if err != nil {
 		return err
 	}
-	isFilePath := false
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		isFilePath = true
-	}
-	if !isBlk && !isFilePath {
-		return fmt.Errorf("%s: not an existing block device", path)
-	}
-
-	if partitions {
-		fmt.Println("Zeroing partitions is not implemented")
-		deviceName := filepath.Base(path)
-		partitions, err := sysfsPartitions(deviceName)
-		if err != nil {
-			fmt.Printf("Error retrieving partitions for the device: %v", err)
-			return err
-		}
-
-		for _, p := range partitions {
-			partPath := filepath.Join("/dev", p)
-			fmt.Println("---zero partition", partPath)
-			// if err = quickZero(partPath, false, false); err != nil {
-			// 	return err
-			// }
-		}
+	if !isBlk {
+		return fmt.Errorf("%s: not an existing block device", diskPath.DevicePath)
 	}
 
 	fmt.Println("---isBlockDevice", "YES!")
 
-	// err = zeroFileAtOffsets(path, offsets, zeroBufLen, zeroCount, false, exclusive)
-	// if err != nil {
-	// 	fmt.Printf("Error zeroing the path `%s`: %v\n", path, err)
-	// 	return err
-	// }
-	fmt.Printf("Successfully zeroed path `%s`\n", path)
+	// Zero out the first and last 1M of the disk
+	err = zeroFileAtOffsets(diskPath, offsets, zeroBufLen, zeroCount, false, exclusive)
+	if err != nil {
+		fmt.Printf("Error zeroing the path `%s`: %v\n", diskPath.DevicePath, err)
+		return err
+	}
+	fmt.Printf("Successfully zeroed path `%s`\n", diskPath.DevicePath)
 	return nil
 }
 
@@ -132,8 +115,8 @@ func isBlockDevice(path string) (bool, error) {
 }
 
 // zeroFileAtOffsets writes zeroes to file at specified offsets
-func zeroFileAtOffsets(path string, offsets []int, buflen, count int, strict, exclusive bool) error {
-	f, err := exclusiveOpen(path, exclusive)
+func zeroFileAtOffsets(diskPath DiskPath, offsets []int, buflen, count int, strict, exclusive bool) error {
+	f, err := exclusiveOpen(diskPath.DevicePath, exclusive)
 	if err != nil {
 		return err
 	}

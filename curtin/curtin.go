@@ -26,10 +26,6 @@ type PartitionCommand struct {
 
 // Partition run a partitioning command
 func Partition(blockMeta PartitionCommand, config Config) error {
-
-	fmt.Println(blockMeta)
-	fmt.Println(config.Storage)
-
 	if blockMeta.Mode == modeCustom {
 		return metaCustom(blockMeta, config)
 	}
