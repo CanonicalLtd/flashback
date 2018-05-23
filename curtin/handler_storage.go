@@ -83,6 +83,7 @@ func zeroFileAtOffsets(diskPath DiskPath, offsets []int, buflen, count int, stri
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	// Get the size by seeking to the end
 	size, err := f.Seek(0, os.SEEK_END)

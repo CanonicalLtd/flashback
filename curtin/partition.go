@@ -49,6 +49,8 @@ func metaCustomItem(blockMeta PartitionCommand, item StorageItem) error {
 		return diskHandler(blockMeta, item)
 	case "partition":
 		return partitionHandler(blockMeta, item)
+	case "format":
+		return formatHandler(blockMeta, item)
 	default:
 		return fmt.Errorf("The storage type `%s` is not implemented", item.Type)
 	}

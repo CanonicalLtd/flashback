@@ -26,12 +26,19 @@ storage:
       type: partition
       device: sdd
       number: 1
-      fstype: vfat
       size: 128M
     - id: writable
       type: partition
       device: sdd
       number: 2
-      fstype: ext4
       size: 420M
-  
+    - id: sdd1_boot
+      type: format
+      fstype: vfat
+      volume: sdd1
+      label: SYSTEM-BOOT
+    - id: sdd2_writable
+      type: format
+      fstype: ext4
+      volume: sdd2
+      label: writable

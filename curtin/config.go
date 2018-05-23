@@ -37,6 +37,7 @@ type StorageItem struct {
 	Flag       string `yaml:"flag,omitempty"`
 	FsType     string `yaml:"fstype,omitempty"`
 	Wipe       string `yaml:"wipe,omitempty"`
+	Label      string `yaml:"label,omitempty"`
 	Volume     string `yaml:"volume,omitempty"`
 }
 
