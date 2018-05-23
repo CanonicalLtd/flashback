@@ -20,60 +20,25 @@ const (
 	zeroSize           = zeroBufLen * zeroCount
 )
 
-func diskHandler(blockMeta PartitionCommand, item StorageItem) error {
-	// Define the disk path using the different formats
-	diskPath := DiskPath{
-		Device:       deviceNameFromPath(item.Path),
-		DevicePath:   item.Path,
-		SysBlockPath: sysBlockFromPath(item.Path),
-	}
-
-	if item.Preserve {
-		fmt.Println("Not implemented: ignore the `preserve` flag")
-	}
-
-	if !item.Preserve && len(item.Wipe) > 0 {
-		fmt.Println("Not implemented: wipe the disk")
-	}
-
-	if !item.Preserve && len(item.PTable) > 0 {
-		if item.PTable == pTableGPT {
-			// Wipe both MBR and GPT that may be present on the disk.
-			// n.b. wipe_volume wipes 1M at front and end of the disk.
-			// This could destroy disk data in filesystems that lived
-			// there.
-			fmt.Printf("Wipe the MBR and GPT on the disk `%s`", diskPath.Device)
-			if err := wipeVolume(diskPath, wipeModeSuperblock, true); err != nil {
-				fmt.Println(err)
-				return err
-			}
-		}
-		fmt.Println("Not implemented: remove holders and label the disk")
-	}
-
-	return nil
-}
-
 // wipeVolume wipes a volume/block device
 // path: a path to a block device
 // mode: how to wipe it.
-//	pvremove: wipe a lvm physical volume
-//	zero: write zeros to the entire volume
-//	random: write random data (/dev/urandom) to the entire volume
 //	superblock: zero the beginning and the end of the volume
-//	superblock-recursive: zero the beginning of the volume, the end of the
+//	-- pvremove: wipe a lvm physical volume
+//	-- zero: write zeros to the entire volume
+//	-- random: write random data (/dev/urandom) to the entire volume
+//	-- superblock-recursive: zero the beginning of the volume, the end of the
 //		volume and beginning and end of any partitions that are known to be on this device.
 //	exclusive: boolean to control how path is opened
 func wipeVolume(diskPath DiskPath, mode string, exclusive bool) error {
 	if mode == wipeModeSuperblock {
 		return quickZeroSuperblock(diskPath, exclusive)
 	}
-	return fmt.Errorf("Wipe not implemented for mode `%s`", mode)
+	return fmt.Errorf("  Wipe not implemented for mode `%s`", mode)
 }
 
 // quickZeroSuperblock zeroes 1M at front, 1M at end, and 1M at front if this is a block device
 func quickZeroSuperblock(diskPath DiskPath, exclusive bool) error {
-	fmt.Println("---quickZero", diskPath.DevicePath)
 	offsets := []int{0, -zeroSize}
 
 	// Check this path is a block device or file
@@ -82,18 +47,16 @@ func quickZeroSuperblock(diskPath DiskPath, exclusive bool) error {
 		return err
 	}
 	if !isBlk {
-		return fmt.Errorf("%s: not an existing block device", diskPath.DevicePath)
+		return fmt.Errorf("  %s: not an existing block device", diskPath.DevicePath)
 	}
-
-	fmt.Println("---isBlockDevice", "YES!")
 
 	// Zero out the first and last 1M of the disk
 	err = zeroFileAtOffsets(diskPath, offsets, zeroBufLen, zeroCount, false, exclusive)
 	if err != nil {
-		fmt.Printf("Error zeroing the path `%s`: %v\n", diskPath.DevicePath, err)
+		fmt.Printf("  Error zeroing the path `%s`: %v\n", diskPath.DevicePath, err)
 		return err
 	}
-	fmt.Printf("Successfully zeroed path `%s`\n", diskPath.DevicePath)
+	fmt.Printf("  Successfully zeroed path `%s`\n", diskPath.DevicePath)
 	return nil
 }
 
@@ -102,7 +65,7 @@ func isBlockDevice(path string) (bool, error) {
 
 	err := syscall.Stat(path, &stat)
 	if err != nil {
-		fmt.Printf("Error checking block device: %v\n", err)
+		fmt.Printf("  Error checking block device: %v\n", err)
 		return false, err
 	}
 

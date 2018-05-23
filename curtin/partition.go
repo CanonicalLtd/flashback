@@ -37,7 +37,7 @@ func Partition(blockMeta PartitionCommand, config Config) error {
 func metaCustom(blockMeta PartitionCommand, config Config) error {
 	for _, item := range config.Storage.Config {
 		if err := metaCustomItem(blockMeta, item); err != nil {
-			return nil
+			return err
 		}
 	}
 	return nil
@@ -47,6 +47,8 @@ func metaCustomItem(blockMeta PartitionCommand, item StorageItem) error {
 	switch item.Type {
 	case "disk":
 		return diskHandler(blockMeta, item)
+	case "partition":
+		return partitionHandler(blockMeta, item)
 	default:
 		return fmt.Errorf("The storage type `%s` is not implemented", item.Type)
 	}

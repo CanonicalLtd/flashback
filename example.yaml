@@ -24,11 +24,14 @@ storage:
       path: /dev/sdd
     - id: system-boot
       type: partition
+      device: sdd
       number: 1
-      ptable: vfat
+      fstype: vfat
       size: 128M
     - id: writable
       type: partition
+      device: sdd
       number: 2
-      ptable: ext4
+      fstype: ext4
       size: 420M
+  
