@@ -5,8 +5,8 @@
 package core
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -67,13 +67,13 @@ func ReadConfig(path string) (Config, error) {
 
 	dat, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Printf("Error reading config parameters: %v", err)
+		fmt.Printf("Error reading config parameters: %v\n", err)
 		return c, err
 	}
 
 	err = yaml.Unmarshal(dat, &c)
 	if err != nil {
-		log.Printf("Error parsing config parameters: %v", err)
+		fmt.Printf("Error parsing config parameters: %v\n", err)
 		return c, err
 	}
 

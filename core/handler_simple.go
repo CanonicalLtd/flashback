@@ -116,14 +116,18 @@ func writeImageToDisk(ddType, ddImage, device string) error {
 	c := fmt.Sprintf("cat \"%s\" %s | dd bs=4M of=%s", ddImage, extractor, device)
 
 	out, err := exec.Command("sh", "-c", c).Output()
-	fmt.Println(string(out))
+	if len(out) > 0 {
+		fmt.Println(string(out))
+	}
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Writing image `%s` to device `%s` successful\n", ddImage, device)
+	fmt.Printf("Started writing image `%s` to device `%s`\n", ddImage, device)
 
 	out, err = exec.Command("partprobe", device).Output()
-	fmt.Println(string(out))
+	if len(out) > 0 {
+		fmt.Println(string(out))
+	}
 	if err != nil {
 		return err
 	}

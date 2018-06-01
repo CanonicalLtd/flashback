@@ -3,13 +3,7 @@ partitioning_commands:
 
 sources:
   - dd-xz: /home/jjesudason/Downloads/ubuntu-core-16-pi3.img.xz
-  - dd-img: /home/jjesudason/Downloads/cascade-userdata-core-candidate-2018-05-04.img
 
 block-meta:
   devices:
     - /dev/sdd
-  # boot-partition:
-  #   - enabled: True
-  #     format: gpt
-  #     fstype: ext4
-  #     label: my-boot-partition
