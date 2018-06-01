@@ -1,5 +1,5 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
-// Curtin Core
+// Flashback
 // Copyright 2018 Canonical Ltd.  All rights reserved.
 
 package execute
@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/CanonicalLtd/curtin-core/curtin"
+	"github.com/CanonicalLtd/flashback/core"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -20,7 +20,7 @@ type RunCommand struct {
 // Execute the run command
 func (cmd RunCommand) Execute(args []string) error {
 	// Read the config parameters
-	config, err := curtin.ReadConfig(cmd.ConfigPath)
+	config, err := core.ReadConfig(cmd.ConfigPath)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (cmd RunCommand) Execute(args []string) error {
 	return nil
 }
 
-func partition(config curtin.Config) error {
+func partition(config core.Config) error {
 	for _, v := range config.PartitioningCommands {
 		args, err := flags.ParseArgs(&Execution, strings.Split(v, " ")[1:])
 		if err != nil {
@@ -52,7 +52,7 @@ func partition(config curtin.Config) error {
 		Execution.BlockMeta.Mode = args[0]
 
 		// Run the partition command
-		err = curtin.Partition(Execution.BlockMeta, config)
+		err = core.Partition(Execution.BlockMeta, config)
 		if err != nil {
 			return err
 		}

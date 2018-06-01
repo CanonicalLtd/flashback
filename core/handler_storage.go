@@ -1,8 +1,8 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
-// Curtin Core
+// Flashback
 // Copyright 2018 Canonical Ltd.  All rights reserved.
 
-package curtin
+package core
 
 import (
 	"fmt"

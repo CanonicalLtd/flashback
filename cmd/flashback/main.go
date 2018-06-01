@@ -1,5 +1,5 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
-// Curtin Core
+// Flashback
 // Copyright 2018 Canonical Ltd.  All rights reserved.
 
 package main
@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/CanonicalLtd/curtin-core/execute"
+	"github.com/CanonicalLtd/flashback/execute"
 	flags "github.com/jessevdk/go-flags"
 )
 
