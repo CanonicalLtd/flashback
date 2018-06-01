@@ -1,0 +1,6 @@
+# Partition labels to search for
+restore-partition: restore
+writable-partition: writable
+
+# Path to the log file
+logfile: /var/log/flashback.log
