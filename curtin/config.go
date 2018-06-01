@@ -21,6 +21,13 @@ type Config struct {
 		Config  []StorageItem `yaml:"config"`
 		Version int           `yaml:"version"`
 	} `yaml:"storage"`
+
+	BlockMeta struct {
+		Devices        []string        `yaml:"devices"`
+		BootPartitions []BootPartition `yaml:"boot-partition"`
+	} `yaml:"block-meta"`
+
+	Sources []interface{} `yaml:"sources"`
 }
 
 // StorageItem defines a storage element
@@ -39,6 +46,19 @@ type StorageItem struct {
 	Wipe       string `yaml:"wipe,omitempty"`
 	Label      string `yaml:"label,omitempty"`
 	Volume     string `yaml:"volume,omitempty"`
+}
+
+// BootPartition defines the details of a boot partition
+type BootPartition struct {
+	Enabled bool   `yaml:"enabled"`
+	Format  string `yaml:"format"`
+	FsType  string `yaml:"fstype"`
+	Label   string `yaml:"label"`
+}
+
+// SourceItem defines a source image
+type SourceItem struct {
+	DDImg string `yaml:"dd-img"`
 }
 
 // ReadConfig fetches the store config

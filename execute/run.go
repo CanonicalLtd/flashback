@@ -54,7 +54,6 @@ func partition(config curtin.Config) error {
 		// Run the partition command
 		err = curtin.Partition(Execution.BlockMeta, config)
 		if err != nil {
-			fmt.Printf("Error with partitioning: %v", err)
 			return err
 		}
 	}
