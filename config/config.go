@@ -14,6 +14,7 @@ import (
 
 // Config defines the configuration parameters
 type Config struct {
+	BootPartitionLabel     string `yaml:"boot-partition"`
 	RestorePartitionLabel  string `yaml:"restore-partition"`
 	WritablePartitionLabel string `yaml:"writable-partition"`
 	LogFile                string `yaml:"logfile"`

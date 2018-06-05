@@ -37,24 +37,43 @@ func Run() (string, error) {
 
 	// TODO: Set the clock to image creation time so we are not too far off
 
-	// find free partition space
-	last, err := core.FreePartitionSpace(writable)
-	fmt.Println("---", last, err)
+	// // TODO: find free partition space
+	// last, err := core.FreePartitionSpace(writable)
+	// encryptPart := last + 1
+	// encryptDevice := core.DevicePathFromNumber(writable, encryptPart)
+
+	// fmt.Println("---last partition", last, err)
+	// fmt.Println("---encrypt", encryptPart, encryptDevice)
 
 	// re-label old "writable" to "restore"
 	a, err := core.RelabelDisk(writable, config.Store.RestorePartitionLabel)
-	fmt.Println("---", a, err)
+	fmt.Println("---relabel", a, err)
 
-	// check which partition table we use
+	// Create the `writable` partition with the free space
+	newWritable, err := core.CreateNextPartition(writable)
+	if err != nil {
+		return "", err
+	}
 
-	// refresh partition table
+	// Refresh partition table, ignore error as the device may be busy
+	_ = core.RefreshPartitionTable(writable)
 
 	// # encrypt new partition
 
-	// format the device
+	// Format the new partition
+	err = core.FormatDisk(newWritable, "ext4", config.Store.WritablePartitionLabel)
+	if err != nil {
+		return newWritable, err
+	}
+
+	fmt.Println("---format", err)
 
 	// back up system-boot
+	err = core.BackupSystemBoot(config.Store.BootPartitionLabel, config.Store.RestorePartitionLabel)
+	if err != nil {
+		return newWritable, err
+	}
 
 	// # mark superblock of restore partition readonly
-	return "", nil
+	return newWritable, nil
 }

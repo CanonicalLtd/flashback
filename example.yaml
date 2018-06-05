@@ -1,4 +1,5 @@
 # Partition labels to search for
+boot-partition: system-boot
 restore-partition: restore
 writable-partition: writable
 
