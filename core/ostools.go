@@ -20,6 +20,8 @@ import (
 const (
 	BackupImagePath = "/restore/system-boot.img.gz"
 	RestorePath     = "/restore"
+	TargetPath      = "/target"
+	SystemDataPath  = "/restore/system-data"
 )
 
 // FindFS locates a filesystem by label
@@ -164,16 +166,13 @@ func BackupSystemBoot(systemBoot, restore string) error {
 	// Unmount the boot path
 	_ = Unmount(deviceBoot)
 
-	fmt.Println("---", deviceBoot)
-	fmt.Println("---", BackupImagePath)
-
 	// Back up system-boot partition to img file so we keep the exact filesystem
 	// without having to parse gadget.yaml or worrying about ABI compatibility
 	// to ubuntu-image's dosfstools
 	err = ReadAndGzipToFile(deviceBoot, BackupImagePath)
 
 	// Unmount the restore partition
-	//_ = Unmount(RestorePath)
+	_ = Unmount(RestorePath)
 
 	return err
 }
@@ -196,26 +195,14 @@ func ReadAndGzipToFile(inFile, outFile string) error {
 	}
 	defer fOut.Close()
 
-	// Create a pipe to connect the input and output streams
-	pr, pw := io.Pipe()
-
 	// Read from the input and gzip it
 	buffer := bufio.NewReader(fIn)
-	gw := gzip.NewWriter(pw)
+	gw := gzip.NewWriter(fOut)
 
-	go func() {
-		n, err := buffer.WriteTo(gw)
-		if err != nil {
-			audit.Println("Error backing up system-boot (write):", err)
-		}
-		gw.Close()
-		pw.Close()
-		audit.Printf("Read: %d bytes", n)
-	}()
-
-	// Take the piped output from gzip and write it to the output file
-	n, err := io.Copy(fOut, pr)
-	audit.Printf("Wrote: %d bytes", n)
+	// Take the buffered input and write it to the output file via gzip
+	n, err := io.Copy(gw, buffer)
+	gw.Close()
+	audit.Printf("%d bytes read, compressed and written to file", n)
 	return err
 }
 
@@ -242,6 +229,36 @@ func Unmount(device string) error {
 	if len(out) > 0 {
 		audit.Println(string(out))
 	}
+
+	return err
+}
+
+// CopySystemData copies system-data to the new writable partition
+func CopySystemData(restore, newWritable string) error {
+	// Mount the restore path
+	err := Mount(restore, RestorePath)
+	if err != nil {
+		return err
+	}
+
+	// Mount the writable path
+	err = Mount(newWritable, TargetPath)
+	if err != nil {
+		return err
+	}
+
+	out, err := exec.Command("rsync", "-a", "--info=progress2", SystemDataPath, TargetPath).Output()
+	if len(out) > 0 {
+		audit.Println(string(out))
+	}
+
+	// Backup logs?
+
+	// Unmount the partitions
+	_ = Unmount(RestorePath)
+	_ = Unmount(TargetPath)
+
+	//# close the device
 
 	return err
 }

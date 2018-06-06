@@ -5,8 +5,6 @@
 package bootprint
 
 import (
-	"fmt"
-
 	"github.com/CanonicalLtd/flashback/audit"
 	"github.com/CanonicalLtd/flashback/config"
 	"github.com/CanonicalLtd/flashback/core"
@@ -28,12 +26,13 @@ func CheckAndRun() (string, error) {
 // Run executes the backup of the initial writable partition and system-boot data
 func Run() (string, error) {
 	// Find original "writable" and matching disk device
+	audit.Printf("Find the writable partition: %s", config.Store.WritablePartitionLabel)
 	writable, err := core.FindFS(config.Store.WritablePartitionLabel)
 	if err != nil {
 		audit.Printf("Cannot find the writable partition: `%s` : %v\n", config.Store.WritablePartitionLabel, err)
 		return "", nil
 	}
-	fmt.Println("---", writable)
+	audit.Println("Found partition at", writable)
 
 	// TODO: Set the clock to image creation time so we are not too far off
 
@@ -45,11 +44,17 @@ func Run() (string, error) {
 	// fmt.Println("---last partition", last, err)
 	// fmt.Println("---encrypt", encryptPart, encryptDevice)
 
-	// re-label old "writable" to "restore"
-	a, err := core.RelabelDisk(writable, config.Store.RestorePartitionLabel)
-	fmt.Println("---relabel", a, err)
+	// Re-label old "writable" to "restore"
+	audit.Println("Relabel the writable partition as", config.Store.RestorePartitionLabel)
+	resp, err := core.RelabelDisk(writable, config.Store.RestorePartitionLabel)
+	if err != nil {
+		audit.Println(resp)
+		audit.Printf("Cannot find the relabel partition: `%s` : %v\n", config.Store.RestorePartitionLabel, err)
+		return "", nil
+	}
 
 	// Create the `writable` partition with the free space
+	audit.Println("Create the writable partition with the free space")
 	newWritable, err := core.CreateNextPartition(writable)
 	if err != nil {
 		return "", err
@@ -61,14 +66,21 @@ func Run() (string, error) {
 	// # encrypt new partition
 
 	// Format the new partition
+	audit.Println("Format the writable partition:", newWritable)
 	err = core.FormatDisk(newWritable, "ext4", config.Store.WritablePartitionLabel)
 	if err != nil {
 		return newWritable, err
 	}
 
-	fmt.Println("---format", err)
+	// Copy content from restore partition (renamed writable) to the new writable partition
+	audit.Println("Copy the system data to the new partition")
+	err = core.CopySystemData(writable, newWritable)
+	if err != nil {
+		return newWritable, err
+	}
 
 	// back up system-boot
+	audit.Println("Backup the system boot partition")
 	err = core.BackupSystemBoot(config.Store.BootPartitionLabel, config.Store.RestorePartitionLabel)
 	if err != nil {
 		return newWritable, err
