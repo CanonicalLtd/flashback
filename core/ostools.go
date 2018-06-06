@@ -24,6 +24,8 @@ const (
 	RestorePath     = "/restore"
 	TargetPath      = "/target"
 	SystemDataPath  = "/restore/system-data"
+	SystemData      = "system-data"
+	TempBackupPath  = "/tmp/flashbackup"
 )
 
 // FindFS locates a filesystem by label
@@ -238,34 +240,23 @@ func Unmount(device string) error {
 // CopySystemData copies system-data to the new writable partition
 func CopySystemData(restore, newWritable string) error {
 	// Mount the restore path
-	err := Mount(restore, RestorePath)
-	if err != nil {
+	if err := Mount(restore, RestorePath); err != nil {
 		return err
 	}
 
 	// Mount the writable path
-	err = Mount(newWritable, TargetPath)
-	if err != nil {
+	if err := Mount(newWritable, TargetPath); err != nil {
 		return err
 	}
 
 	// Copy the system data from the restore partition to the writable partition
-	out, err := exec.Command("rsync", "-a", SystemDataPath, TargetPath).Output()
-	if len(out) > 0 {
-		audit.Println(string(out))
-	}
-	if err != nil {
+	if err := CopyDirectory(SystemDataPath, TargetPath); err != nil {
 		return err
 	}
 
 	// Backup log file to the writable partition
-	targetLog := filepath.Join(TargetPath, config.Store.LogFile)
-	_ = os.MkdirAll(filepath.Dir(targetLog), os.ModePerm)
-	out, err = exec.Command("cp", audit.DefaultLogFile, targetLog).Output()
-	if len(out) > 0 {
-		audit.Println(string(out))
-	}
-	if err != nil {
+	targetLog := filepath.Join(TargetPath, SystemData, config.Store.LogFile)
+	if err := CopyFile(audit.DefaultLogFile, targetLog); err != nil {
 		return err
 	}
 
@@ -275,5 +266,117 @@ func CopySystemData(restore, newWritable string) error {
 
 	//# close the device
 
+	return nil
+}
+
+// CopyDirectory from one location to another
+func CopyDirectory(source, target string) error {
+	out, err := exec.Command("rsync", "-a", source, target).Output()
+	if len(out) > 0 {
+		audit.Println(string(out))
+	}
 	return err
+}
+
+// CopyFile from one location to another
+func CopyFile(source, target string) error {
+	_ = os.MkdirAll(filepath.Dir(target), os.ModePerm)
+	out, err := exec.Command("cp", "-a", source, target).Output()
+	if len(out) > 0 {
+		audit.Println(string(out))
+	}
+
+	return err
+}
+
+// BackupUserData backs up the requested data to the RAM disk
+func BackupUserData(writable string) error {
+	// Mount the writable path
+	if err := Mount(writable, TargetPath); err != nil {
+		return err
+	}
+
+	// Make the backup directory on the RAM disk
+	_ = os.MkdirAll(TempBackupPath, os.ModePerm)
+
+	// Backup the directories
+	for _, d := range config.Store.Backup.Directories {
+		// Check if the directory exists
+		dir := filepath.Join(TargetPath, SystemData, d)
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			audit.Println("Directory not found:", d)
+			continue
+		}
+
+		audit.Println("Backup directory:", d)
+		tempPath := filepath.Join(TempBackupPath, d)
+		if err := CopyDirectory(dir, tempPath); err != nil {
+			return err
+		}
+	}
+
+	// Backup the files
+	for _, f := range config.Store.Backup.Files {
+		// Check if the file exists
+		file := filepath.Join(TargetPath, SystemData, f)
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			audit.Println("File not found:", f)
+			continue
+		}
+
+		audit.Println("Backup file:", f)
+		tempPath := filepath.Join(TempBackupPath, f)
+		if err := CopyFile(file, tempPath); err != nil {
+			return err
+		}
+	}
+
+	// Unmount the writable partition
+	_ = Unmount(TargetPath)
+
+	return nil
+}
+
+// RestoreUserData restores the requested data from the RAM disk
+func RestoreUserData(writable string) error {
+	// Mount the writable path
+	if err := Mount(writable, TargetPath); err != nil {
+		return err
+	}
+
+	// Restore the directories
+	for _, d := range config.Store.Backup.Directories {
+		// Check if the directory exists
+		tempPath := filepath.Join(TempBackupPath, d)
+		if _, err := os.Stat(tempPath); os.IsNotExist(err) {
+			audit.Println("Directory not found:", d)
+			continue
+		}
+		audit.Println("Restore directory:", d)
+		targetPath := filepath.Join(TargetPath, SystemData, d)
+		if err := CopyDirectory(tempPath, targetPath); err != nil {
+			return err
+		}
+	}
+
+	// Restore the files
+	for _, f := range config.Store.Backup.Files {
+		// Check if the file exists
+		tempPath := filepath.Join(TempBackupPath, f)
+		if _, err := os.Stat(tempPath); os.IsNotExist(err) {
+			audit.Println("File not found:", f)
+			continue
+		}
+
+		audit.Println("Restore file:", f)
+		file := filepath.Join(TargetPath, SystemData, f)
+		if err := CopyFile(tempPath, file); err != nil {
+			return err
+		}
+	}
+
+	// Unmount the writable partition
+	_ = Unmount(TargetPath)
+
+	return nil
 }

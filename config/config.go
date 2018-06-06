@@ -18,6 +18,10 @@ type Config struct {
 	RestorePartitionLabel  string `yaml:"restore-partition"`
 	WritablePartitionLabel string `yaml:"writable-partition"`
 	LogFile                string `yaml:"logfile"`
+	Backup                 struct {
+		Directories []string `yaml:"directory"`
+		Files       []string `yaml:"file"`
+	} `yaml:"backup"`
 }
 
 const (

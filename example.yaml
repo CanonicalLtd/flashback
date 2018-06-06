@@ -5,3 +5,11 @@ writable-partition: writable
 
 # Path to the log file
 logfile: /var/log/flashback.log
+
+# The files and directories to keep when performing a factory-reset
+backup:
+  directory:
+    - /var/snap/network-manager/current/conf/system-connections
+    - /var/log/logit
+  file:
+    - /var/log/boot.log

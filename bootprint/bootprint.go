@@ -67,22 +67,19 @@ func Run() (string, error) {
 
 	// Format the new partition
 	audit.Println("Format the writable partition:", newWritable)
-	err = core.FormatDisk(newWritable, "ext4", config.Store.WritablePartitionLabel)
-	if err != nil {
+	if err = core.FormatDisk(newWritable, "ext4", config.Store.WritablePartitionLabel); err != nil {
 		return newWritable, err
 	}
 
 	// Copy content from restore partition (renamed writable) to the new writable partition
 	audit.Println("Copy the system data to the new partition")
-	err = core.CopySystemData(writable, newWritable)
-	if err != nil {
+	if err = core.CopySystemData(writable, newWritable); err != nil {
 		return newWritable, err
 	}
 
 	// back up system-boot
 	audit.Println("Backup the system boot partition")
-	err = core.BackupSystemBoot(config.Store.BootPartitionLabel, config.Store.RestorePartitionLabel)
-	if err != nil {
+	if err = core.BackupSystemBoot(config.Store.BootPartitionLabel, config.Store.RestorePartitionLabel); err != nil {
 		return newWritable, err
 	}
 
