@@ -23,6 +23,7 @@ type Config struct {
 const (
 	restorePartitionLabel  = "restore"
 	writablePartitionLabel = "writable"
+	logFilePath            = "/var/log/flashback.log"
 )
 
 // Store the stored configuration from the file
@@ -52,11 +53,8 @@ func Read(path string) error {
 
 func setDefaults() {
 	if len(Store.LogFile) == 0 {
-		audit.Printf("Default the LogFile to `%s`\n", audit.LogFile)
-		Store.LogFile = audit.LogFile
-	} else {
-		// Overwrite the log file path from the config
-		audit.LogFile = Store.LogFile
+		audit.Printf("Default the LogFile to `%s`\n", logFilePath)
+		Store.LogFile = logFilePath
 	}
 	if len(Store.RestorePartitionLabel) == 0 {
 		audit.Printf("Default the RestorePartitionLabel to `%s`\n", restorePartitionLabel)

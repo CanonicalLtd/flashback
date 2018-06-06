@@ -11,9 +11,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/CanonicalLtd/flashback/audit"
+	"github.com/CanonicalLtd/flashback/config"
 )
 
 // Constants for saving the system image
@@ -247,12 +249,25 @@ func CopySystemData(restore, newWritable string) error {
 		return err
 	}
 
-	out, err := exec.Command("rsync", "-a", "--info=progress2", SystemDataPath, TargetPath).Output()
+	// Copy the system data from the restore partition to the writable partition
+	out, err := exec.Command("rsync", "-a", SystemDataPath, TargetPath).Output()
 	if len(out) > 0 {
 		audit.Println(string(out))
 	}
+	if err != nil {
+		return err
+	}
 
-	// Backup logs?
+	// Backup log file to the writable partition
+	targetLog := filepath.Join(TargetPath, config.Store.LogFile)
+	_ = os.MkdirAll(filepath.Dir(targetLog), os.ModePerm)
+	out, err = exec.Command("cp", audit.DefaultLogFile, targetLog).Output()
+	if len(out) > 0 {
+		audit.Println(string(out))
+	}
+	if err != nil {
+		return err
+	}
 
 	// Unmount the partitions
 	_ = Unmount(RestorePath)

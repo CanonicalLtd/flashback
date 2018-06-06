@@ -1,6 +1,10 @@
 # Flashback
 
-Lightweight recovery image installer, compatible with the `curtin` format
+Lightweight recovery image installer that handles:
+
+ - Creation of a recovery partition
+ - Disk encryption (optional)
+ - Factory-reset from the recovery partition
 
 ## Install from Source
 If you have a Go development environment set up, Go get it:

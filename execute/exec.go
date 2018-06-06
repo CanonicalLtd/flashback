@@ -6,7 +6,8 @@ package execute
 
 // Command defines the execution options for the application
 type Command struct {
-	ConfigPath string `short:"c" long:"config" description:"read configuration from cfg"`
+	ConfigPath   string `short:"c" long:"config" description:"read configuration from cfg"`
+	FactoryReset bool   `long:"factory-reset" description:"read configuration from cfg"`
 }
 
 // Execution is the implementation of the execution options

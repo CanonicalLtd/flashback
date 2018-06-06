@@ -10,6 +10,7 @@ import (
 	"github.com/CanonicalLtd/flashback/bootprint"
 	"github.com/CanonicalLtd/flashback/config"
 	"github.com/CanonicalLtd/flashback/execute"
+	"github.com/CanonicalLtd/flashback/reset"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -37,5 +38,14 @@ func Execute(args []string) error {
 
 	// Check if we need to create a boot print
 	_, err = bootprint.CheckAndRun()
+	if err != nil {
+		return err
+	}
+
+	// Start a factory reset, if requested
+	if execute.Execution.FactoryReset {
+		err = reset.Run()
+	}
+
 	return err
 }
