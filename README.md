@@ -22,7 +22,7 @@ $ go install ./...
 The application will be installed to `$GOPATH/bin`.
 
 ## Run it
-- Set up the config file, using ```example_simple.yaml``` as a guide.
+- Set up the config file, using ```example.yaml``` as a guide.
 - Run it:
   ```bash
   $ sudo flashback --config=/path/to/settings.yaml

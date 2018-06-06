@@ -1,9 +1,0 @@
-partitioning_commands:
-  10_partition: curtin block-meta --target=/mnt/root-device simple
-
-sources:
-  - dd-xz: /home/jjesudason/Downloads/ubuntu-core-16-pi3.img.xz
-
-block-meta:
-  devices:
-    - /dev/sdd
