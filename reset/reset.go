@@ -33,7 +33,7 @@ func Run() error {
 	audit.Println("Found partition at", restore)
 
 	// Back up the requested data
-	if err := core.BackupUserData(writable); err != nil {
+	if err := backupUserData(writable); err != nil {
 		return err
 	}
 
@@ -50,9 +50,13 @@ func Run() error {
 	}
 
 	// Restore system-boot to virgin state
+	audit.Println("Restore system-boot to its first-boot state")
+	if err = restoreSystemBoot(config.Store.RestorePartitionLabel, config.Store.BootPartitionLabel); err != nil {
+		return err
+	}
 
 	// Restore backed up data
-	if err := core.RestoreUserData(writable); err != nil {
+	if err := restoreUserData(writable); err != nil {
 		return err
 	}
 

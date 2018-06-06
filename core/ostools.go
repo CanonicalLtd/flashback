@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/CanonicalLtd/flashback/audit"
-	"github.com/CanonicalLtd/flashback/config"
 )
 
 // Constants for saving the system image
@@ -147,40 +146,6 @@ func RefreshPartitionTable(device string) error {
 	return err
 }
 
-// BackupSystemBoot makes a raw backup of system-boot
-func BackupSystemBoot(systemBoot, restore string) error {
-	// Get the boot and restore partitions
-	deviceBoot, err := FindFS(systemBoot)
-	if err != nil {
-		audit.Printf("Cannot find the `%s` partition: %v", systemBoot, err)
-		return err
-	}
-	deviceRestore, err := FindFS(restore)
-	if err != nil {
-		audit.Printf("Cannot find the `%s` partition: %v", restore, err)
-		return err
-	}
-
-	// Mount the restore path
-	err = Mount(deviceRestore, RestorePath)
-	if err != nil {
-		return err
-	}
-
-	// Unmount the boot path
-	_ = Unmount(deviceBoot)
-
-	// Back up system-boot partition to img file so we keep the exact filesystem
-	// without having to parse gadget.yaml or worrying about ABI compatibility
-	// to ubuntu-image's dosfstools
-	err = ReadAndGzipToFile(deviceBoot, BackupImagePath)
-
-	// Unmount the restore partition
-	_ = Unmount(RestorePath)
-
-	return err
-}
-
 // ReadAndGzipToFile reads a file/device, zips it and writes it to a file
 func ReadAndGzipToFile(inFile, outFile string) error {
 	// Open the input file
@@ -207,6 +172,39 @@ func ReadAndGzipToFile(inFile, outFile string) error {
 	n, err := io.Copy(gw, buffer)
 	gw.Close()
 	audit.Printf("%d bytes read, compressed and written to file", n)
+	return err
+}
+
+// UnzipToDevice reads gzip file and decompresses it to a device
+func UnzipToDevice(inFile, device string) error {
+	// Open the input file
+	fIn, err := os.Open(inFile)
+	if err != nil {
+		audit.Println("Error restoring system-boot (open input):", err)
+		return err
+	}
+	defer fIn.Close()
+
+	// Create the output file
+	fOut, err := os.Create(device)
+	if err != nil {
+		audit.Println("Error restoring system-boot (open output):", err)
+		return err
+	}
+	defer fOut.Close()
+
+	// Read from the gzip reader and output to the writer
+	gr, err := gzip.NewReader(fIn)
+	if err != nil {
+		audit.Println("Error restoring system-boot (gzip reader):", err)
+		return err
+	}
+	buffer := bufio.NewWriter(fOut)
+
+	// Take the gzipped input and write it to the output device
+	n, err := io.Copy(buffer, gr)
+	gr.Close()
+	audit.Printf("%d bytes read, uncompressed and written to device", n)
 	return err
 }
 
@@ -237,38 +235,6 @@ func Unmount(device string) error {
 	return err
 }
 
-// CopySystemData copies system-data to the new writable partition
-func CopySystemData(restore, newWritable string) error {
-	// Mount the restore path
-	if err := Mount(restore, RestorePath); err != nil {
-		return err
-	}
-
-	// Mount the writable path
-	if err := Mount(newWritable, TargetPath); err != nil {
-		return err
-	}
-
-	// Copy the system data from the restore partition to the writable partition
-	if err := CopyDirectory(SystemDataPath, TargetPath); err != nil {
-		return err
-	}
-
-	// Backup log file to the writable partition
-	targetLog := filepath.Join(TargetPath, SystemData, config.Store.LogFile)
-	if err := CopyFile(audit.DefaultLogFile, targetLog); err != nil {
-		return err
-	}
-
-	// Unmount the partitions
-	_ = Unmount(RestorePath)
-	_ = Unmount(TargetPath)
-
-	//# close the device
-
-	return nil
-}
-
 // CopyDirectory from one location to another
 func CopyDirectory(source, target string) error {
 	out, err := exec.Command("rsync", "-a", source, target).Output()
@@ -287,96 +253,4 @@ func CopyFile(source, target string) error {
 	}
 
 	return err
-}
-
-// BackupUserData backs up the requested data to the RAM disk
-func BackupUserData(writable string) error {
-	// Mount the writable path
-	if err := Mount(writable, TargetPath); err != nil {
-		return err
-	}
-
-	// Make the backup directory on the RAM disk
-	_ = os.MkdirAll(TempBackupPath, os.ModePerm)
-
-	// Backup the directories
-	for _, d := range config.Store.Backup.Directories {
-		// Check if the directory exists
-		dir := filepath.Join(TargetPath, SystemData, d)
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			audit.Println("Directory not found:", d)
-			continue
-		}
-
-		audit.Println("Backup directory:", d)
-		tempPath := filepath.Join(TempBackupPath, d)
-		if err := CopyDirectory(dir, tempPath); err != nil {
-			return err
-		}
-	}
-
-	// Backup the files
-	for _, f := range config.Store.Backup.Files {
-		// Check if the file exists
-		file := filepath.Join(TargetPath, SystemData, f)
-		if _, err := os.Stat(file); os.IsNotExist(err) {
-			audit.Println("File not found:", f)
-			continue
-		}
-
-		audit.Println("Backup file:", f)
-		tempPath := filepath.Join(TempBackupPath, f)
-		if err := CopyFile(file, tempPath); err != nil {
-			return err
-		}
-	}
-
-	// Unmount the writable partition
-	_ = Unmount(TargetPath)
-
-	return nil
-}
-
-// RestoreUserData restores the requested data from the RAM disk
-func RestoreUserData(writable string) error {
-	// Mount the writable path
-	if err := Mount(writable, TargetPath); err != nil {
-		return err
-	}
-
-	// Restore the directories
-	for _, d := range config.Store.Backup.Directories {
-		// Check if the directory exists
-		tempPath := filepath.Join(TempBackupPath, d)
-		if _, err := os.Stat(tempPath); os.IsNotExist(err) {
-			audit.Println("Directory not found:", d)
-			continue
-		}
-		audit.Println("Restore directory:", d)
-		targetPath := filepath.Join(TargetPath, SystemData, d)
-		if err := CopyDirectory(tempPath, targetPath); err != nil {
-			return err
-		}
-	}
-
-	// Restore the files
-	for _, f := range config.Store.Backup.Files {
-		// Check if the file exists
-		tempPath := filepath.Join(TempBackupPath, f)
-		if _, err := os.Stat(tempPath); os.IsNotExist(err) {
-			audit.Println("File not found:", f)
-			continue
-		}
-
-		audit.Println("Restore file:", f)
-		file := filepath.Join(TargetPath, SystemData, f)
-		if err := CopyFile(tempPath, file); err != nil {
-			return err
-		}
-	}
-
-	// Unmount the writable partition
-	_ = Unmount(TargetPath)
-
-	return nil
 }

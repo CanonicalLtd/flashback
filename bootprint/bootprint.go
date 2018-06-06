@@ -79,7 +79,7 @@ func Run() (string, error) {
 
 	// back up system-boot
 	audit.Println("Backup the system boot partition")
-	if err = core.BackupSystemBoot(config.Store.BootPartitionLabel, config.Store.RestorePartitionLabel); err != nil {
+	if err = backupSystemBoot(config.Store.BootPartitionLabel, config.Store.RestorePartitionLabel); err != nil {
 		return newWritable, err
 	}
 
