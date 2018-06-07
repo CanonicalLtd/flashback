@@ -18,6 +18,9 @@ type Config struct {
 	RestorePartitionLabel  string `yaml:"restore-partition"`
 	WritablePartitionLabel string `yaml:"writable-partition"`
 	LogFile                string `yaml:"logfile"`
+	EncryptFS              bool   `yaml:"encrypt"`
+	EncryptUnlockAction    string `yaml:"unlock-action"`
+	EncryptLockAction      string `yaml:"lock-action"`
 	Backup                 struct {
 		Directories []string `yaml:"directory"`
 		Files       []string `yaml:"file"`

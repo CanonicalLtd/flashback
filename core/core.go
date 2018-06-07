@@ -5,6 +5,7 @@
 package core
 
 import (
+	"os/exec"
 	"path/filepath"
 
 	"github.com/CanonicalLtd/flashback/audit"
@@ -41,4 +42,16 @@ func CopySystemData(restore, newWritable string) error {
 	//# close the device
 
 	return nil
+}
+
+// UnlockCryptoFS calls the hook to unlock full-disk encryption
+func UnlockCryptoFS() (string, error) {
+	out, err := exec.Command(config.Store.EncryptUnlockAction).Output()
+	return string(out), err
+}
+
+// LockCryptoFS calls the hook to unlock full-disk encryption
+func LockCryptoFS() (string, error) {
+	out, err := exec.Command(config.Store.EncryptLockAction).Output()
+	return string(out), err
 }

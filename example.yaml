@@ -3,6 +3,13 @@ boot-partition: system-boot
 restore-partition: restore
 writable-partition: writable
 
+# Enable full-disk encryption (accepts: true/false, yes/no, on/off)
+encrypt: true
+
+# Hooks for locking/unlocking the encrypted partition
+unlock-action: unlock-crypt-fs
+lock-action: lock-crypt-fs
+
 # Path to the log file
 logfile: /var/log/flashback.log
 
