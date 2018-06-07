@@ -50,42 +50,61 @@ func stringToInt(s string) (int, error) {
 	return strconv.Atoi(cleaned)
 }
 
-// rootDeviceNameFromPath converts a path name from /dev/sdd1 to sdd
-func rootDeviceNameFromPath(path string) string {
+// RootDeviceNameFromPath converts a path name from:
+//   /dev/sdd1 to sdd
+//   /dev/mmcblk1p2 to mmcblk1
+func RootDeviceNameFromPath(path string) string {
+	var re *regexp.Regexp
 	p := filepath.Base(path)
-	re := regexp.MustCompile("[^/a-zA-Z]")
+
+	if strings.HasPrefix(p, MMCPrefix) {
+		// mmcblk1p2 format
+		re = regexp.MustCompile("p[0-9]+$")
+	} else {
+		// sdd format
+		re = regexp.MustCompile("[^/a-zA-Z]")
+	}
 	return re.ReplaceAllString(p, "")
 }
 
-// devicePathFromDevice converts sdd1 to /dev/sdd1
-func devicePathFromDevice(devName string) string {
+// DevicePathFromDevice converts sdd1 to /dev/sdd1
+func DevicePathFromDevice(devName string) string {
 	return filepath.Join(dev, devName)
 }
 
-// devicePathFromNumber gets the device path using a number e.g. /dev/sdd1 + 3 = /dev/sdd3
-func devicePathFromNumber(device string, number int) string {
-	dev := rootDeviceNameFromPath(device)
-	return fmt.Sprintf("%s%d", dev, number)
+// DevicePathFromNumber gets the device path using a number
+// e.g. /dev/sdd1 + 3 = /dev/sdd3
+// e.g. /dev/mmcblk1p2 + 3 = /dev/mmcblk1p3
+func DevicePathFromNumber(device string, number int) string {
+	var name string
+	d := RootDeviceNameFromPath(device)
+	if strings.HasPrefix(d, MMCPrefix) {
+		name = fmt.Sprintf("%sp%d", d, number)
+	} else {
+		name = fmt.Sprintf("%s%d", d, number)
+	}
+	return filepath.Join(dev, name)
 }
 
-// deviceNameFromPath converts the path /dev/sdd1 to sdd1
-func deviceNameFromPath(path string) string {
+// DeviceNameFromPath converts the path /dev/sdd1 to sdd1
+func DeviceNameFromPath(path string) string {
 	return filepath.Base(path)
 }
 
-// deviceNumberFromPath converts the path /dev/sdd1 to 1
-func deviceNumberFromPath(path string) (int, error) {
-	dev := filepath.Base(path)
-	return stringToInt(dev)
+// DeviceNumberFromPath converts the path /dev/sdd1 to 1
+func DeviceNumberFromPath(path string) (int, error) {
+	d := filepath.Base(path)
+
+	if strings.HasPrefix(d, MMCPrefix) {
+		re := regexp.MustCompile("^mmcblk[0-9]+")
+		d = re.ReplaceAllString(d, "")
+	}
+
+	return stringToInt(d)
 }
 
-// sysBlockFromPath returns the /sys/class/block/<dev> from /dev/<dev>
-func sysBlockFromPath(path string) string {
-	return filepath.Join(base, deviceNameFromPath(path))
-}
-
-// sysBlockFromPath returns the /sys/class/block/<dev> from <dev>
-func sysBlockFromDevice(devName string) string {
+// SysBlockFromDevice returns the /sys/class/block/<dev> from <dev>
+func SysBlockFromDevice(devName string) string {
 	return filepath.Join(base, devName)
 }
 
@@ -140,57 +159,6 @@ func sgDiskFlag(flag string) string {
 		return val
 	}
 	return sgdiskFlags["linux"]
-}
-
-// mkfs formats a filesystem on block device with given path using given fstype
-func mkfs(path, fstype, label string) error {
-	family := fsFamily(fstype)
-	mkfsCmd := mkfsCommand(fstype)
-
-	cmd := []string{}
-
-	// Add options for the sector size if it's not the default size
-	_, logSec := sectorSize(path)
-	if logSec > defaultBlockSize {
-		optSector, err := familyFlag("sectorsize", family)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			cmd = append(cmd, optSector)
-			cmd = append(cmd, string(logSec))
-		}
-	}
-
-	// Always set the force option
-	optForce, err := familyFlag("force", family)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		cmd = append(cmd, optForce)
-	}
-
-	if len(label) > 0 {
-		// Always set the force option
-		optLabel, err := familyFlag("label", family)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			cmd = append(cmd, optLabel)
-			cmd = append(cmd, label)
-		}
-	}
-
-	// Add the path to the command
-	cmd = append(cmd, path)
-
-	// Run the mkfs.<fstype> command
-	out, err := exec.Command(mkfsCmd, cmd...).Output()
-	if err != nil {
-		fmt.Println(string(out))
-		return err
-	}
-	fmt.Println(string(out))
-	return nil
 }
 
 func mkfsCommand(fstype string) string {

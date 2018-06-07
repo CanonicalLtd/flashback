@@ -25,6 +25,7 @@ const (
 	SystemDataPath  = "/restore/system-data"
 	SystemData      = "system-data"
 	TempBackupPath  = "/tmp/flashbackup"
+	MMCPrefix       = "mmcblk"
 )
 
 // FindFS locates a filesystem by label
@@ -90,14 +91,14 @@ func CreateNextPartition(currentDevice string) (string, error) {
 	)
 
 	// Get the current partition number from the device e.g. 2 from /dev/sdd2
-	number, err := deviceNumberFromPath(currentDevice)
+	number, err := DeviceNumberFromPath(currentDevice)
 	if err != nil {
 		return "", fmt.Errorf("The device name does not include the partition number: %v", err)
 	}
 
 	// Get the details of this partition
-	currPtnName := deviceNameFromPath(currentDevice)
-	currPtn := sysBlockFromDevice(currPtnName) // /sys/class/block/sdd1
+	currPtnName := DeviceNameFromPath(currentDevice)
+	currPtn := SysBlockFromDevice(currPtnName) // /sys/class/block/sdd1
 	lbs := logicalBlockSize(currPtn)
 	currSize := partitionSize(currPtn)
 	currStart := partitionStart(currPtn)
@@ -113,8 +114,8 @@ func CreateNextPartition(currentDevice string) (string, error) {
 	}
 
 	// Format the name of the device
-	rootDeviceName := rootDeviceNameFromPath(currentDevice) // e.g. sdd
-	rootDevicePath := devicePathFromDevice(rootDeviceName)  // e.g. /dev/sdd
+	rootDeviceName := RootDeviceNameFromPath(currentDevice) // e.g. sdd
+	rootDevicePath := DevicePathFromDevice(rootDeviceName)  // e.g. /dev/sdd
 
 	lastDevicePath := fmt.Sprintf("%s%d", rootDevicePath, number+1)
 
@@ -133,13 +134,59 @@ func CreateNextPartition(currentDevice string) (string, error) {
 
 // FormatDisk formats and labels a disk
 func FormatDisk(path, fstype, label string) error {
-	return mkfs(path, fstype, label)
+	family := fsFamily(fstype)
+	mkfsCmd := mkfsCommand(fstype)
+
+	cmd := []string{}
+
+	// Add options for the sector size if it's not the default size
+	_, logSec := sectorSize(path)
+	if logSec > defaultBlockSize {
+		optSector, err := familyFlag("sectorsize", family)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			cmd = append(cmd, optSector)
+			cmd = append(cmd, string(logSec))
+		}
+	}
+
+	// Always set the force option
+	optForce, err := familyFlag("force", family)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		cmd = append(cmd, optForce)
+	}
+
+	if len(label) > 0 {
+		// Always set the force option
+		optLabel, err := familyFlag("label", family)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			cmd = append(cmd, optLabel)
+			cmd = append(cmd, label)
+		}
+	}
+
+	// Add the path to the command
+	cmd = append(cmd, path)
+
+	// Run the mkfs.<fstype> command
+	out, err := exec.Command(mkfsCmd, cmd...).Output()
+	if err != nil {
+		fmt.Println(string(out))
+		return err
+	}
+	fmt.Println(string(out))
+	return nil
 }
 
 // RefreshPartitionTable refreshes the partition table by re-reading it
 func RefreshPartitionTable(device string) error {
-	rootDevName := rootDeviceNameFromPath(device)
-	out, err := exec.Command("blockdev", "--rereadpt", devicePathFromDevice(rootDevName)).Output()
+	rootDevName := RootDeviceNameFromPath(device)
+	out, err := exec.Command("blockdev", "--rereadpt", DevicePathFromDevice(rootDevName)).Output()
 	if len(out) > 0 {
 		audit.Println(string(out))
 	}
