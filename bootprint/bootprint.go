@@ -5,84 +5,66 @@
 package bootprint
 
 import (
+	"os"
+
 	"github.com/CanonicalLtd/flashback/audit"
-	"github.com/CanonicalLtd/flashback/config"
 	"github.com/CanonicalLtd/flashback/core"
 )
 
 // CheckAndRun verifies that a restore partition has been created
 // If not, it initiates the creation of the restore partition
-func CheckAndRun() (string, error) {
-	device, err := core.FindFS(config.Store.RestorePartitionLabel)
-	if err == nil && len(device) > 0 {
-		// We have completed the boot print previously
-		return device, nil
+func CheckAndRun() error {
+	// Find the partition devices
+	err := core.FindPartitions()
+	if err != nil {
+		return nil
 	}
 
-	// Looks as though the restore partition has not been created... let's take a boot print!
+	// Mount the restore path
+	if err = core.Mount(core.PartitionTable.Restore, core.RestorePath); err != nil {
+		return err
+	}
+
+	// Check that the backup files exist
+	backupBoot := false
+	backupWritable := false
+	if _, err := os.Stat(core.BackupImageSystemBoot); err == nil {
+		backupBoot = true
+	}
+	if _, err := os.Stat(core.BackupImageWritable); err == nil {
+		backupWritable = true
+	}
+	if backupBoot && backupWritable {
+		audit.Println("Recovery image is created")
+		_ = core.Unmount(core.RestorePath)
+		return nil
+	}
+
+	// Looks as though the backup has not been created... let's take a boot print!
 	return Run()
 }
 
 // Run executes the backup of the initial writable partition and system-boot data
-func Run() (string, error) {
-	// Find original "writable" and matching disk device
-	audit.Printf("Find the writable partition: %s", config.Store.WritablePartitionLabel)
-	writable, err := core.FindFS(config.Store.WritablePartitionLabel)
-	if err != nil {
-		audit.Printf("Cannot find the writable partition: `%s` : %v\n", config.Store.WritablePartitionLabel, err)
-		return "", nil
-	}
-	audit.Println("Found partition at", writable)
-
+func Run() error {
+	audit.Println("Create the recovery image")
 	// TODO: Set the clock to image creation time so we are not too far off
 
-	// // TODO: find free partition space
-	// last, err := core.FreePartitionSpace(writable)
-	// encryptPart := last + 1
-	// encryptDevice := core.DevicePathFromNumber(writable, encryptPart)
-
-	// fmt.Println("---last partition", last, err)
-	// fmt.Println("---encrypt", encryptPart, encryptDevice)
-
-	// Re-label old "writable" to "restore"
-	audit.Println("Relabel the writable partition as", config.Store.RestorePartitionLabel)
-	resp, err := core.RelabelDisk(writable, config.Store.RestorePartitionLabel)
-	if err != nil {
-		audit.Println(resp)
-		audit.Printf("Cannot find the relabel partition: `%s` : %v\n", config.Store.RestorePartitionLabel, err)
-		return "", nil
-	}
-
-	// Create the `writable` partition with the free space
-	audit.Println("Create the writable partition with the free space")
-	newWritable, err := core.CreateNextPartition(writable)
-	if err != nil {
-		return "", err
-	}
-
 	// Refresh partition table, ignore error as the device may be busy
-	_ = core.RefreshPartitionTable(writable)
+	_ = core.RefreshPartitionTable(core.PartitionTable.Writable)
 
-	// # encrypt new partition
-
-	// Format the new partition
-	audit.Println("Format the writable partition:", newWritable)
-	if err = core.FormatDisk(newWritable, "ext4", config.Store.WritablePartitionLabel); err != nil {
-		return newWritable, err
-	}
-
-	// Copy content from restore partition (renamed writable) to the new writable partition
-	audit.Println("Copy the system data to the new partition")
-	if err = core.CopySystemData(writable, newWritable); err != nil {
-		return newWritable, err
+	// back up writable
+	audit.Println("Backup the writable partition")
+	if err := backupWritable(); err != nil {
+		return err
 	}
 
 	// back up system-boot
 	audit.Println("Backup the system boot partition")
-	if err = backupSystemBoot(config.Store.BootPartitionLabel, config.Store.RestorePartitionLabel); err != nil {
-		return newWritable, err
+	if err := backupSystemBoot(); err != nil {
+		return err
 	}
+	// # encrypt new partition
 
 	// # mark superblock of restore partition readonly
-	return newWritable, nil
+	return nil
 }

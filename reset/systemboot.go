@@ -33,7 +33,7 @@ func restoreSystemBoot(restore, systemBoot string) error {
 	_ = core.Unmount(deviceBoot)
 
 	// Write partition content back
-	err = core.UnzipToDevice(core.BackupImagePath, deviceBoot)
+	err = core.UnzipToDevice(core.BackupImageSystemBoot, deviceBoot)
 
 	// Unmount the restore partition
 	_ = core.Unmount(core.RestorePath)

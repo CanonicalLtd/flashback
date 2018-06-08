@@ -12,20 +12,20 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/CanonicalLtd/flashback/audit"
 )
 
 // Constants for saving the system image
 const (
-	BackupImagePath = "/restore/system-boot.img.gz"
-	RestorePath     = "/restore"
-	TargetPath      = "/target"
-	SystemDataPath  = "/restore/system-data"
-	SystemData      = "system-data"
-	TempBackupPath  = "/tmp/flashbackup"
-	MMCPrefix       = "mmcblk"
+	BackupImageWritable   = "/restore/writable.img.gz"
+	BackupImageSystemBoot = "/restore/system-boot.img.gz"
+	RestorePath           = "/restore"
+	TargetPath            = "/target"
+	SystemDataPath        = "/restore/system-data"
+	SystemData            = "system-data"
+	TempBackupPath        = "/tmp/flashbackup"
+	MMCPrefix             = "mmcblk"
 )
 
 // FindFS locates a filesystem by label
@@ -35,101 +35,6 @@ func FindFS(label string) (string, error) {
 	// Remove non-printable characters from the response
 	cleaned := cleanOutput(string(out))
 	return cleaned, err
-}
-
-// FreePartitionSpace finds the free space on a device
-func FreePartitionSpace(device string) (int, error) {
-	out, err := exec.Command("parted", "-ms", device, "unit B print").Output()
-	if err != nil {
-		return 0, err
-	}
-
-	// Parse the output to get the unit number
-	s := string(out)
-	last := strings.Split(s, ":")
-
-	return stringToInt(last[7])
-}
-
-// RelabelDisk changes the label of a disk
-func RelabelDisk(device, label string) (string, error) {
-	out, err := exec.Command("tune2fs", "-L", label, device).Output()
-
-	// Remove non-printable characters from the response
-	cleaned := cleanOutput(string(out))
-	return cleaned, err
-}
-
-// // CreatePartitionGPT creates a new partition that occupies the rest of the disk
-// func CreatePartitionGPT(tableType, devicePath, label string) error {
-// 	var cmd *exec.Cmd
-// 	switch tableType {
-// 	case "gpt":
-// 		cmd = exec.Command("sgdisk",
-// 			fmt.Sprintf("--largest-new=%s", devicePath),
-// 			fmt.Sprintf("--change-name=%s", label),
-// 		)
-// 	default:
-// 		return fmt.Errorf("unknown partition table type: %s", tableType)
-// 	}
-
-// 	out, err := cmd.Output()
-// 	if len(out) > 0 {
-// 		audit.Println(string(out))
-// 	}
-// 	return err
-// }
-
-// CreateNextPartition creates a new partition that occupies the rest of the disk.
-// Creates /dev/sdd3 that occupies the rest of the disk when supplied with /dev/sdd2
-func CreateNextPartition(currentDevice string) (string, error) {
-	// Get the previous partition details
-	var (
-		currSizeSectors  int
-		currStartSectors int
-		offsetSectors    int
-	)
-
-	// Get the current partition number from the device e.g. 2 from /dev/sdd2
-	number, err := DeviceNumberFromPath(currentDevice)
-	if err != nil {
-		return "", fmt.Errorf("The device name does not include the partition number: %v", err)
-	}
-
-	// Get the details of this partition
-	currPtnName := DeviceNameFromPath(currentDevice)
-	currPtn := SysBlockFromDevice(currPtnName) // /sys/class/block/sdd1
-	lbs := logicalBlockSize(currPtn)
-	currSize := partitionSize(currPtn)
-	currStart := partitionStart(currPtn)
-	currSizeSectors = int(currSize * 512 / lbs)
-	currStartSectors = int(currStart * 512 / lbs)
-
-	alignmentOffset := int((1 << 20)) / lbs
-	if number == 1 {
-		offsetSectors = alignmentOffset
-	} else {
-		// We're only handling GPT and physical partitions (not extended/logical ones)
-		offsetSectors = currStartSectors + currSizeSectors
-	}
-
-	// Format the name of the device
-	rootDeviceName := RootDeviceNameFromPath(currentDevice) // e.g. sdd
-	rootDevicePath := DevicePathFromDevice(rootDeviceName)  // e.g. /dev/sdd
-
-	lastDevicePath := fmt.Sprintf("%s%d", rootDevicePath, number+1)
-
-	// Run `parted` to create the new partition
-	audit.Printf("Create partition `%s` starting at sector %d\n", lastDevicePath, offsetSectors)
-	out, err := exec.Command(
-		"parted",
-		"-ms", rootDevicePath,
-		"mkpart", "primary", fmt.Sprintf("%ds", offsetSectors), "100%").Output()
-	if err != nil {
-		return lastDevicePath, fmt.Errorf("Error creating partition `%s`: %v", lastDevicePath, err)
-	}
-	audit.Printf("Partition `%s` created: %s\n", lastDevicePath, out)
-	return lastDevicePath, nil
 }
 
 // FormatDisk formats and labels a disk

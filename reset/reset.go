@@ -43,11 +43,11 @@ func Run() error {
 		return err
 	}
 
-	// Copy content from restore partition (renamed writable) to the new writable partition
-	audit.Println("Copy the system data to the writable partition")
-	if err = core.CopySystemData(restore, writable); err != nil {
-		return err
-	}
+	// // Copy content from restore partition (renamed writable) to the new writable partition
+	// audit.Println("Copy the system data to the writable partition")
+	// if err = core.CopySystemData(restore, writable); err != nil {
+	// 	return err
+	// }
 
 	// Restore system-boot to virgin state
 	audit.Println("Restore system-boot to its first-boot state")

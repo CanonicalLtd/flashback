@@ -37,7 +37,7 @@ func Execute(args []string) error {
 	}
 
 	// Check if we need to create a boot print
-	_, err = bootprint.CheckAndRun()
+	err = bootprint.CheckAndRun()
 	if err != nil {
 		return err
 	}
