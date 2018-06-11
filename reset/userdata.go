@@ -5,6 +5,8 @@
 package reset
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"os"
 	"path/filepath"
 
@@ -14,17 +16,30 @@ import (
 )
 
 // backupUserData backs up the requested data to the RAM disk
-func backupUserData(writable string) error {
+func backupUserData() error {
 	audit.Println("Backup user data to the RAM disk")
 	// Mount the writable path
-	if err := core.Mount(writable, core.TargetPath); err != nil {
+	if err := core.Mount(core.PartitionTable.Writable, core.TargetPath); err != nil {
 		return err
 	}
 
-	// Make the backup directory on the RAM disk
-	_ = os.MkdirAll(core.TempBackupPath, os.ModePerm)
+	// Create the tar file
+	t := filepath.Join(core.TempFSMount, "userdata.tar.gz")
+	tarfile, err := os.Create(t)
+	if err != nil {
+		return err
+	}
+	defer tarfile.Close()
 
-	// Backup the directories
+	// Open the gzip writer
+	gw := gzip.NewWriter(tarfile)
+	defer gw.Close()
+
+	// Open the tar writer
+	tw := tar.NewWriter(gw)
+	defer tw.Close()
+
+	// Backup the directories to the RAM disk (copy of the restore partition)
 	for _, d := range config.Store.Backup.Directories {
 		// Check if the directory exists
 		dir := filepath.Join(core.TargetPath, core.SystemData, d)
@@ -34,8 +49,7 @@ func backupUserData(writable string) error {
 		}
 
 		audit.Println("Backup directory:", d)
-		tempPath := filepath.Join(core.TempBackupPath, d)
-		if err := core.CopyDirectory(dir, tempPath); err != nil {
+		if err := core.Tar(dir, tw); err != nil {
 			return err
 		}
 	}
@@ -50,8 +64,7 @@ func backupUserData(writable string) error {
 		}
 
 		audit.Println("Backup file:", f)
-		tempPath := filepath.Join(core.TempBackupPath, f)
-		if err := core.CopyFile(file, tempPath); err != nil {
+		if err := core.Tar(file, tw); err != nil {
 			return err
 		}
 	}
@@ -105,4 +118,34 @@ func restoreUserData(writable string) error {
 	_ = core.Unmount(core.TargetPath)
 
 	return nil
+}
+
+// createRestoreRAMDisk creates a copy of the restore partition as a RAM disk
+func createRestoreRAMDisk() error {
+	// Get the size of the restore partition
+	size, err := core.PartitionSize(core.PartitionTable.Restore)
+	if err != nil {
+		return err
+	}
+
+	// Mount the restore path
+	if err := core.Mount(core.PartitionTable.Restore, core.RestorePath); err != nil {
+		return err
+	}
+
+	// Create the RAM disk the same size
+	if err = core.CreateRAMDisk(core.TempFSMount, size); err != nil {
+		return err
+	}
+
+	// Copy the drive to the RAM disk
+	audit.Println("Copy", core.RestorePath+"/", "to", core.TempFSMount)
+	return core.CopyDirectory(core.RestorePath+"/", core.TempFSMount)
+}
+
+func copyRAMDiskToRestore() error {
+	// The partitions are already mounted
+
+	audit.Println("Copy the data from the RAM partition to the restore partition")
+	return core.CopyDirectory(core.TempFSMount+"/", core.RestorePath)
 }

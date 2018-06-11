@@ -50,6 +50,17 @@ func stringToInt(s string) (int, error) {
 	return strconv.Atoi(cleaned)
 }
 
+func stringToInt64(s string) (int64, error) {
+	// Remove any control characters e.g. LF
+	reg, err := regexp.Compile("[^0-9]+")
+	if err != nil {
+		return 0, err
+	}
+	cleaned := reg.ReplaceAllString(s, "")
+
+	return strconv.ParseInt(cleaned, 10, 64)
+}
+
 // RootDeviceNameFromPath converts a path name from:
 //   /dev/sdd1 to sdd
 //   /dev/mmcblk1p2 to mmcblk1
@@ -108,40 +119,13 @@ func SysBlockFromDevice(devName string) string {
 	return filepath.Join(base, devName)
 }
 
-func logicalBlockSize(sysfsPath string) int {
-	lbsPath := filepath.Join(sysfsPath, "queue", "logical_block_size")
-	i, err := readSizeFromContent(lbsPath)
-	if err != nil {
-		return defaultBlockSize
-	}
-	return i
-}
-
-func partitionSize(sysfsPath string) int {
-	lbsPath := filepath.Join(sysfsPath, "size")
-	i, err := readSizeFromContent(lbsPath)
-	if err != nil {
-		return 0
-	}
-	return i
-}
-
-func partitionStart(sysfsPath string) int {
-	lbsPath := filepath.Join(sysfsPath, "start")
-	i, err := readSizeFromContent(lbsPath)
-	if err != nil {
-		return 0
-	}
-	return i
-}
-
-func readSizeFromContent(path string) (int, error) {
+func readSizeFromContent(path string) (int64, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return 0, err
 	}
 
-	return stringToInt(string(b))
+	return stringToInt64(string(b))
 }
 
 func sgDiskFlag(flag string) string {

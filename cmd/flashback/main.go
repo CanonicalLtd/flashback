@@ -7,6 +7,8 @@ package main
 import (
 	"os"
 
+	"github.com/CanonicalLtd/flashback/audit"
+
 	"github.com/CanonicalLtd/flashback/bootprint"
 	"github.com/CanonicalLtd/flashback/config"
 	"github.com/CanonicalLtd/flashback/execute"
@@ -45,6 +47,9 @@ func Execute(args []string) error {
 	// Start a factory reset, if requested
 	if execute.Execution.FactoryReset {
 		err = reset.Run()
+		if err != nil {
+			audit.Println("Error in factory reset:", err)
+		}
 	}
 
 	return err

@@ -5,6 +5,7 @@
 package core
 
 import (
+	"archive/tar"
 	"bufio"
 	"compress/gzip"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/CanonicalLtd/flashback/audit"
 )
@@ -25,6 +27,7 @@ const (
 	SystemDataPath        = "/restore/system-data"
 	SystemData            = "system-data"
 	TempBackupPath        = "/tmp/flashbackup"
+	TempFSMount           = "/mnt/tmprestore"
 	MMCPrefix             = "mmcblk"
 )
 
@@ -167,9 +170,9 @@ func Mount(device, target string) error {
 	// Unmount the device, just in case
 	_ = Unmount(device)
 
-	audit.Println("Mount the device as", target)
 	out, err := exec.Command("mount", device, target).Output()
 	if len(out) > 0 {
+		audit.Println("Mount the device as", target)
 		audit.Println(string(out))
 	}
 
@@ -178,9 +181,9 @@ func Mount(device, target string) error {
 
 // Unmount unmounts the device
 func Unmount(device string) error {
-	audit.Println("Unmount the device", device)
 	out, err := exec.Command("umount", device).Output()
 	if len(out) > 0 {
+		audit.Println("Unmount the device", device)
 		audit.Println(string(out))
 	}
 
@@ -189,6 +192,7 @@ func Unmount(device string) error {
 
 // CopyDirectory from one location to another
 func CopyDirectory(source, target string) error {
+	_ = os.MkdirAll(filepath.Dir(target), os.ModePerm)
 	out, err := exec.Command("rsync", "-a", source, target).Output()
 	if len(out) > 0 {
 		audit.Println(string(out))
@@ -205,4 +209,69 @@ func CopyFile(source, target string) error {
 	}
 
 	return err
+}
+
+// CreateRAMDisk creates a RAM disk of a fixed size
+func CreateRAMDisk(mount string, size int64) error {
+	audit.Println("Create a RAM disk of size", size, "bytes")
+	_ = os.MkdirAll(mount, os.ModePerm)
+	out, err := exec.Command("mount", "-t", "tmpfs", "-o", fmt.Sprintf("size=%d", size), "tmpfs", mount).Output()
+	if len(out) > 0 {
+		audit.Println(string(out))
+	}
+	return err
+}
+
+// PartitionSize retrieves the size of the partition in bytes
+func PartitionSize(device string) (int64, error) {
+	out, err := exec.Command("lsblk", "--noheadings", "--bytes", "--output=SIZE", device).Output()
+	if err != nil {
+		return 0, err
+	}
+	return stringToInt64(string(out))
+}
+
+// Tar creates a tarball from a file or directory structure
+func Tar(source string, tarball *tar.Writer) error {
+	// Check that the source exists
+	info, err := os.Stat(source)
+	if err != nil {
+		return nil
+	}
+
+	var baseDir string
+	if info.IsDir() {
+		baseDir = filepath.Base(source)
+	}
+
+	return filepath.Walk(source,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			header, err := tar.FileInfoHeader(info, info.Name())
+			if err != nil {
+				return err
+			}
+
+			if baseDir != "" {
+				header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, source))
+			}
+
+			if err := tarball.WriteHeader(header); err != nil {
+				return err
+			}
+
+			if info.IsDir() {
+				return nil
+			}
+
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+			_, err = io.Copy(tarball, file)
+			return err
+		})
 }
