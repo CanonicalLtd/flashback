@@ -24,13 +24,15 @@ func Run() error {
 		return err
 	}
 
-	// Back up the requested data
+	// Back up the requested data to the RAM disk copy of restore
 	if err := backupUserData(); err != nil {
+		audit.Println("Error backing up user data to copy of `restore` partition")
 		return err
 	}
 
 	// Write the RAM disk to the restore partition
 	if err := copyRAMDiskToRestore(); err != nil {
+		audit.Println("Error copying user data to `restore` partition")
 		return err
 	}
 

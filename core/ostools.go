@@ -33,7 +33,7 @@ const (
 
 // FindFS locates a filesystem by label
 func FindFS(label string) (string, error) {
-	out, err := exec.Command("findfs", fmt.Sprintf("LABEL=%s", label)).Output()
+	out, err := exec.Command("findfs", fmt.Sprintf("LABEL=%s", label)).CombinedOutput()
 
 	// Remove non-printable characters from the response
 	cleaned := cleanOutput(string(out))
@@ -82,7 +82,7 @@ func FormatDisk(path, fstype, label string) error {
 	cmd = append(cmd, path)
 
 	// Run the mkfs.<fstype> command
-	out, err := exec.Command(mkfsCmd, cmd...).Output()
+	out, err := exec.Command(mkfsCmd, cmd...).CombinedOutput()
 	if err != nil {
 		fmt.Println(string(out))
 		return err
@@ -94,7 +94,7 @@ func FormatDisk(path, fstype, label string) error {
 // RefreshPartitionTable refreshes the partition table by re-reading it
 func RefreshPartitionTable(device string) error {
 	rootDevName := RootDeviceNameFromPath(device)
-	out, err := exec.Command("blockdev", "--rereadpt", DevicePathFromDevice(rootDevName)).Output()
+	out, err := exec.Command("blockdev", "--rereadpt", DevicePathFromDevice(rootDevName)).CombinedOutput()
 	if len(out) > 0 {
 		audit.Println(string(out))
 	}
@@ -170,7 +170,7 @@ func Mount(device, target string) error {
 	// Unmount the device, just in case
 	_ = Unmount(device)
 
-	out, err := exec.Command("mount", device, target).Output()
+	out, err := exec.Command("mount", device, target).CombinedOutput()
 	if len(out) > 0 {
 		audit.Println("Mount the device as", target)
 		audit.Println(string(out))
@@ -193,7 +193,7 @@ func Unmount(device string) error {
 // CopyDirectory from one location to another
 func CopyDirectory(source, target string) error {
 	_ = os.MkdirAll(filepath.Dir(target), os.ModePerm)
-	out, err := exec.Command("rsync", "-a", source, target).Output()
+	out, err := exec.Command("rsync", "-a", source, target).CombinedOutput()
 	if len(out) > 0 {
 		audit.Println(string(out))
 	}
@@ -203,7 +203,7 @@ func CopyDirectory(source, target string) error {
 // CopyFile from one location to another
 func CopyFile(source, target string) error {
 	_ = os.MkdirAll(filepath.Dir(target), os.ModePerm)
-	out, err := exec.Command("cp", "-a", source, target).Output()
+	out, err := exec.Command("cp", "-a", source, target).CombinedOutput()
 	if len(out) > 0 {
 		audit.Println(string(out))
 	}
@@ -215,7 +215,7 @@ func CopyFile(source, target string) error {
 func CreateRAMDisk(mount string, size int64) error {
 	audit.Println("Create a RAM disk of size", size, "bytes")
 	_ = os.MkdirAll(mount, os.ModePerm)
-	out, err := exec.Command("mount", "-t", "tmpfs", "-o", fmt.Sprintf("size=%d", size), "tmpfs", mount).Output()
+	out, err := exec.Command("mount", "-t", "tmpfs", "-o", fmt.Sprintf("size=%d", size), "tmpfs", mount).CombinedOutput()
 	if len(out) > 0 {
 		audit.Println(string(out))
 	}

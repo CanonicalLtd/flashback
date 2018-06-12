@@ -55,13 +55,13 @@ var PartitionTable Partition
 
 // UnlockCryptoFS calls the hook to unlock full-disk encryption
 func UnlockCryptoFS() (string, error) {
-	out, err := exec.Command(config.Store.EncryptUnlockAction).Output()
+	out, err := exec.Command(config.Store.EncryptUnlockAction).CombinedOutput()
 	return string(out), err
 }
 
 // LockCryptoFS calls the hook to unlock full-disk encryption
 func LockCryptoFS() (string, error) {
-	out, err := exec.Command(config.Store.EncryptLockAction).Output()
+	out, err := exec.Command(config.Store.EncryptLockAction).CombinedOutput()
 	return string(out), err
 }
 
