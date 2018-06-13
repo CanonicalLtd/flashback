@@ -49,8 +49,8 @@ func Run() error {
 	audit.Println("Create the recovery image")
 	// TODO: Set the clock to image creation time so we are not too far off
 
-	// Refresh partition table, ignore error as the device may be busy
-	_ = core.RefreshPartitionTable(core.PartitionTable.Writable)
+	// // Refresh partition table, ignore error as the device may be busy
+	//_ = core.RefreshPartitionTable(core.PartitionTable.Writable)
 
 	// back up writable
 	audit.Println("Backup the writable partition")

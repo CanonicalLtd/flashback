@@ -1,7 +1,11 @@
-# Partition labels to search for
-boot-partition: system-boot
-restore-partition: restore
-writable-partition: writable
+# Partition labels and backup files
+restore:
+  # - label: custom1
+  #   file: custom1.img.gz
+  #   type: img
+  # - label: custom2
+  #   file: custom2.tar.gz
+  #   type: tar
 
 # Enable full-disk encryption (accepts: true/false, yes/no, on/off)
 encrypt: true
@@ -14,9 +18,9 @@ lock-action: lock-crypt-fs
 logfile: /var/log/flashback.log
 
 # The files and directories to keep when performing a factory-reset
-backup:
-  directory:
+retain:
+  size: 32  # total max size of retained data in Mb
+  data:
     - /var/snap/network-manager/current/conf/system-connections
     - /var/log/logit
-  file:
     - /var/log/boot.log

@@ -14,20 +14,18 @@ import (
 
 // Config defines the configuration parameters
 type Config struct {
-	BootPartitionLabel     string `yaml:"boot-partition"`
-	RestorePartitionLabel  string `yaml:"restore-partition"`
-	WritablePartitionLabel string `yaml:"writable-partition"`
-	LogFile                string `yaml:"logfile"`
-	EncryptFS              bool   `yaml:"encrypt"`
-	EncryptUnlockAction    string `yaml:"unlock-action"`
-	EncryptLockAction      string `yaml:"lock-action"`
-	Backup                 struct {
-		Directories []string `yaml:"directory"`
-		Files       []string `yaml:"file"`
-	} `yaml:"backup"`
+	LogFile             string `yaml:"logfile"`
+	EncryptFS           bool   `yaml:"encrypt"`
+	EncryptUnlockAction string `yaml:"unlock-action"`
+	EncryptLockAction   string `yaml:"lock-action"`
+	Backup              struct {
+		Size int      `yaml:"size"`
+		Data []string `yaml:"data"`
+	} `yaml:"retain"`
 }
 
 const (
+	defaultBackupSize      = 32
 	restorePartitionLabel  = "restore"
 	writablePartitionLabel = "writable"
 	logFilePath            = "/var/log/flashback.log"
@@ -63,12 +61,8 @@ func setDefaults() {
 		audit.Printf("Default the LogFile to `%s`\n", logFilePath)
 		Store.LogFile = logFilePath
 	}
-	if len(Store.RestorePartitionLabel) == 0 {
-		audit.Printf("Default the RestorePartitionLabel to `%s`\n", restorePartitionLabel)
-		Store.RestorePartitionLabel = restorePartitionLabel
-	}
-	if len(Store.WritablePartitionLabel) == 0 {
-		audit.Printf("Default the WritablePartitionLabel to `%s`\n", writablePartitionLabel)
-		Store.WritablePartitionLabel = writablePartitionLabel
+	if Store.Backup.Size <= 0 {
+		audit.Printf("Default the retained data size to `%d`\n", defaultBackupSize)
+		Store.Backup.Size = defaultBackupSize
 	}
 }

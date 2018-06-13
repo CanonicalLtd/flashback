@@ -68,28 +68,28 @@ func LockCryptoFS() (string, error) {
 // FindPartitions locates the three main partitions
 func FindPartitions() error {
 	// Find "writable" partition and matching disk device
-	audit.Printf("Find the writable partition: %s", config.Store.WritablePartitionLabel)
-	writable, err := FindFS(config.Store.WritablePartitionLabel)
+	audit.Printf("Find the writable partition: %s", PartitionWritable)
+	writable, err := FindFS(PartitionWritable)
 	if err != nil {
-		audit.Printf("Cannot find the writable partition: `%s` : %v\n", config.Store.WritablePartitionLabel, err)
+		audit.Printf("Cannot find the writable partition: `%s` : %v\n", PartitionWritable, err)
 		return err
 	}
 	audit.Println("Found writable partition at", writable)
 
 	// Find "restore" partition and matching disk device
-	audit.Printf("Find the restore partition: %s", config.Store.RestorePartitionLabel)
-	restore, err := FindFS(config.Store.RestorePartitionLabel)
+	audit.Printf("Find the restore partition: %s", PartitionRestore)
+	restore, err := FindFS(PartitionRestore)
 	if err != nil {
-		audit.Printf("Cannot find the restore partition: `%s` : %v\n", config.Store.RestorePartitionLabel, err)
+		audit.Printf("Cannot find the restore partition: `%s` : %v\n", PartitionRestore, err)
 		return err
 	}
 	audit.Println("Found restore partition at", restore)
 
 	// Find "system-boot" partition and matching disk device
-	audit.Printf("Find the system-boot partition: %s", config.Store.BootPartitionLabel)
-	systemboot, err := FindFS(config.Store.BootPartitionLabel)
+	audit.Printf("Find the system-boot partition: %s", PartitionSystemBoot)
+	systemboot, err := FindFS(PartitionSystemBoot)
 	if err != nil {
-		audit.Printf("Cannot find the system-boot partition: `%s` : %v\n", config.Store.BootPartitionLabel, err)
+		audit.Printf("Cannot find the system-boot partition: `%s` : %v\n", PartitionSystemBoot, err)
 		return err
 	}
 	audit.Println("Found system-boot partition at", systemboot)

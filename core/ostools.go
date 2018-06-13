@@ -20,10 +20,13 @@ import (
 
 // Constants for saving the system image
 const (
-	BackupImageWritable   = "/restore/writable.img.gz"
+	PartitionSystemBoot   = "system-boot"
+	PartitionRestore      = "restore"
+	PartitionWritable     = "writable"
+	BackupImageWritable   = "/restore/writable.tar.gz"
 	BackupImageSystemBoot = "/restore/system-boot.img.gz"
 	RestorePath           = "/restore"
-	TargetPath            = "/target"
+	WritablePath          = "/writable"
 	SystemDataPath        = "/restore/system-data"
 	SystemData            = "system-data"
 	TempBackupPath        = "/tmp/flashbackup"
@@ -211,8 +214,8 @@ func CopyFile(source, target string) error {
 	return err
 }
 
-// CreateRAMDisk creates a RAM disk of a fixed size
-func CreateRAMDisk(mount string, size int64) error {
+// CreateTmpfsDisk creates a RAM disk of a fixed size
+func CreateTmpfsDisk(mount string, size int) error {
 	audit.Println("Create a RAM disk of size", size, "bytes")
 	_ = os.MkdirAll(mount, os.ModePerm)
 	out, err := exec.Command("mount", "-t", "tmpfs", "-o", fmt.Sprintf("size=%d", size), "tmpfs", mount).CombinedOutput()

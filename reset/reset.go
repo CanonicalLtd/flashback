@@ -6,6 +6,7 @@ package reset
 
 import (
 	"github.com/CanonicalLtd/flashback/audit"
+	"github.com/CanonicalLtd/flashback/config"
 	"github.com/CanonicalLtd/flashback/core"
 )
 
@@ -16,11 +17,11 @@ func Run() error {
 	// Find the partition devices
 	err := core.FindPartitions()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// Create a RAM disk copy of the restore partition
-	if err := createRestoreRAMDisk(); err != nil {
+	if err := core.CreateTmpfsDisk(core.TempFSMount, config.Store.Backup.Size); err != nil {
 		return err
 	}
 
@@ -30,26 +31,22 @@ func Run() error {
 		return err
 	}
 
-	// Write the RAM disk to the restore partition
-	if err := copyRAMDiskToRestore(); err != nil {
-		audit.Println("Error copying user data to `restore` partition")
+	// Format the writable partition
+
+	// Restore writable from the backup file on the restore partition
+
+	// Restore system-boot to virgin state by rewriting the partition from the backup
+	audit.Println("Restore system-boot to its first-boot state")
+	if err = restoreSystemBoot(); err != nil {
 		return err
 	}
 
-	// // Restore writable to virgin state
+	// Restore backed up data
+	if err := restoreUserData(); err != nil {
+		return err
+	}
 
-	// // Restore system-boot to virgin state
-	// audit.Println("Restore system-boot to its first-boot state")
-	// if err = restoreSystemBoot(config.Store.RestorePartitionLabel, config.Store.BootPartitionLabel); err != nil {
-	// 	return err
-	// }
-
-	// // Restore backed up data
-	// if err := restoreUserData(writable); err != nil {
-	// 	return err
-	// }
-
-	_ = core.Unmount(core.TargetPath)
+	_ = core.Unmount(core.WritablePath)
 	_ = core.Unmount(core.RestorePath)
 	_ = core.Unmount(core.TempFSMount)
 

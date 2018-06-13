@@ -5,35 +5,22 @@
 package reset
 
 import (
-	"github.com/CanonicalLtd/flashback/audit"
 	"github.com/CanonicalLtd/flashback/core"
 )
 
 // restoreSystemBoot restores system-boot from the raw backup
-func restoreSystemBoot(restore, systemBoot string) error {
-	// Get the boot and restore partitions
-	deviceBoot, err := core.FindFS(systemBoot)
-	if err != nil {
-		audit.Printf("Cannot find the `%s` partition: %v", systemBoot, err)
-		return err
-	}
-	deviceRestore, err := core.FindFS(restore)
-	if err != nil {
-		audit.Printf("Cannot find the `%s` partition: %v", restore, err)
-		return err
-	}
-
+func restoreSystemBoot() error {
 	// Mount the restore path
-	err = core.Mount(deviceRestore, core.RestorePath)
+	err := core.Mount(core.PartitionTable.Restore, core.RestorePath)
 	if err != nil {
 		return err
 	}
 
 	// Unmount the boot path
-	_ = core.Unmount(deviceBoot)
+	_ = core.Unmount(core.PartitionTable.SystemBoot)
 
 	// Write partition content back
-	err = core.UnzipToDevice(core.BackupImageSystemBoot, deviceBoot)
+	err = core.UnzipToDevice(core.BackupImageSystemBoot, core.PartitionTable.SystemBoot)
 
 	// Unmount the restore partition
 	_ = core.Unmount(core.RestorePath)
