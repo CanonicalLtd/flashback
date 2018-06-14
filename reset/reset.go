@@ -31,9 +31,23 @@ func Run() error {
 		return err
 	}
 
+	// Get the partition type of writable
+	fsType, err := core.FSType(core.PartitionTable.Writable)
+	if err != nil {
+		return err
+	}
+
 	// Format the writable partition
+	if err := core.FormatDisk(core.PartitionTable.Writable, fsType, core.PartitionWritable); err != nil {
+		audit.Println("Error formatting the `writable` partition")
+		return err
+	}
 
 	// Restore writable from the backup file on the restore partition
+	if err := restoreWritable(); err != nil {
+		audit.Println("Error restoring the `writable` partition")
+		return err
+	}
 
 	// Restore system-boot to virgin state by rewriting the partition from the backup
 	audit.Println("Restore system-boot to its first-boot state")
@@ -45,6 +59,8 @@ func Run() error {
 	if err := restoreUserData(); err != nil {
 		return err
 	}
+
+	audit.Println("Factory reset completed successfully")
 
 	_ = core.Unmount(core.WritablePath)
 	_ = core.Unmount(core.RestorePath)

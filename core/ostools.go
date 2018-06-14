@@ -71,7 +71,7 @@ func FormatDisk(path, fstype, label string) error {
 	}
 
 	if len(label) > 0 {
-		// Always set the force option
+		// Set the label on the disk
 		optLabel, err := familyFlag("label", family)
 		if err != nil {
 			fmt.Println(err)
@@ -218,7 +218,7 @@ func CopyFile(source, target string) error {
 func CreateTmpfsDisk(mount string, size int) error {
 	audit.Println("Create a RAM disk of size", size, "bytes")
 	_ = os.MkdirAll(mount, os.ModePerm)
-	out, err := exec.Command("mount", "-t", "tmpfs", "-o", fmt.Sprintf("size=%d", size), "tmpfs", mount).CombinedOutput()
+	out, err := exec.Command("mount", "-t", "tmpfs", "-o", fmt.Sprintf("size=%dM", size), "tmpfs", mount).CombinedOutput()
 	if len(out) > 0 {
 		audit.Println(string(out))
 	}
@@ -232,6 +232,15 @@ func PartitionSize(device string) (int64, error) {
 		return 0, err
 	}
 	return stringToInt64(string(out))
+}
+
+// FSType retrieves the file-system type of a partition
+func FSType(device string) (string, error) {
+	out, err := exec.Command("lsblk", "--noheadings", "--output=FSTYPE", device).Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }
 
 // Tar creates a tarball from a file or directory structure
