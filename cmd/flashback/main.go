@@ -39,9 +39,11 @@ func Execute(args []string) error {
 	}
 
 	// Check if we need to create a boot print
-	err = bootprint.CheckAndRun()
-	if err != nil {
-		return err
+	if execute.Execution.Bootprint {
+		err = bootprint.CheckAndRun(execute.Execution.Check)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Start a factory reset, if requested

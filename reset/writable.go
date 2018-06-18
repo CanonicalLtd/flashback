@@ -1,3 +1,7 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+// Flashback
+// Copyright 2018 Canonical Ltd.  All rights reserved.
+
 package reset
 
 import (

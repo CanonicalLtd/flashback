@@ -94,16 +94,6 @@ func FormatDisk(path, fstype, label string) error {
 	return nil
 }
 
-// RefreshPartitionTable refreshes the partition table by re-reading it
-func RefreshPartitionTable(device string) error {
-	rootDevName := RootDeviceNameFromPath(device)
-	out, err := exec.Command("blockdev", "--rereadpt", DevicePathFromDevice(rootDevName)).CombinedOutput()
-	if len(out) > 0 {
-		audit.Println(string(out))
-	}
-	return err
-}
-
 // ReadAndGzipToFile reads a file/device, zips it and writes it to a file
 func ReadAndGzipToFile(inFile, outFile string) error {
 	// Open the input file
