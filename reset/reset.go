@@ -38,6 +38,7 @@ func Run() error {
 	}
 
 	// Format the writable partition
+	_ = core.Unmount(core.PartitionTable.Writable)
 	if err := core.FormatDisk(core.PartitionTable.Writable, fsType, core.PartitionWritable); err != nil {
 		audit.Println("Error formatting the `writable` partition")
 		return err

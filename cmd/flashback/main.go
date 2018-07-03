@@ -35,6 +35,7 @@ func Execute(args []string) error {
 	// Read the config parameters
 	err := config.Read(execute.Execution.ConfigPath)
 	if err != nil {
+		audit.Println("Error reading config file:", err)
 		return err
 	}
 
@@ -42,6 +43,7 @@ func Execute(args []string) error {
 	if execute.Execution.Bootprint {
 		err = bootprint.CheckAndRun(execute.Execution.Check)
 		if err != nil {
+			audit.Println("Error in bootprint:", err)
 			return err
 		}
 	}

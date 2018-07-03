@@ -51,7 +51,7 @@ func FormatDisk(path, fstype, label string) error {
 	cmd := []string{}
 
 	// Add options for the sector size if it's not the default size
-	_, logSec := sectorSize(path)
+	logSec := sectorSize(path)
 	if logSec > defaultBlockSize {
 		optSector, err := familyFlag("sectorsize", family)
 		if err != nil {
@@ -85,6 +85,7 @@ func FormatDisk(path, fstype, label string) error {
 	cmd = append(cmd, path)
 
 	// Run the mkfs.<fstype> command
+	fmt.Println(mkfsCmd, cmd)
 	out, err := exec.Command(mkfsCmd, cmd...).CombinedOutput()
 	if err != nil {
 		fmt.Println(string(out))
@@ -215,22 +216,13 @@ func CreateTmpfsDisk(mount string, size int) error {
 	return err
 }
 
-// PartitionSize retrieves the size of the partition in bytes
-func PartitionSize(device string) (int64, error) {
-	out, err := exec.Command("lsblk", "--noheadings", "--bytes", "--output=SIZE", device).Output()
-	if err != nil {
-		return 0, err
-	}
-	return stringToInt64(string(out))
-}
-
 // FSType retrieves the file-system type of a partition
 func FSType(device string) (string, error) {
-	out, err := exec.Command("lsblk", "--noheadings", "--output=FSTYPE", device).Output()
+	out, err := exec.Command("blkid", "-o", "value", "-s", "TYPE", device).Output()
 	if err != nil {
 		return "", err
 	}
-	return string(out), nil
+	return cleanOutput(string(out)), nil
 }
 
 // Tar creates a tarball from a file or directory structure
@@ -264,7 +256,11 @@ func Tar(source string, tarball *tar.Writer) error {
 				return err
 			}
 
+			// Skip copying contents for directories and non-regular files e.g. symlinks
 			if info.IsDir() {
+				return nil
+			}
+			if !info.Mode().IsRegular() {
 				return nil
 			}
 
@@ -276,4 +272,21 @@ func Tar(source string, tarball *tar.Writer) error {
 			_, err = io.Copy(tarball, file)
 			return err
 		})
+}
+
+func sectorSize(path string) int {
+	out, err := exec.Command(
+		"blkid", "-i", "-o", "value", "-s", "LOGICAL_SECTOR_SIZE", path).Output()
+	if err != nil {
+		fmt.Printf("Error fetching sector size for `%s`: %v", path, err)
+		return defaultBlockSize
+	}
+
+	logSec, err := stringToInt(string(out))
+	if err == nil {
+		return logSec
+	}
+
+	fmt.Printf("  Error fetching sector size for `%s`: %s", path, string(out))
+	return defaultBlockSize
 }

@@ -7,7 +7,6 @@ package core
 import (
 	"fmt"
 	"io/ioutil"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -184,44 +183,6 @@ func fsFamily(fstype string) string {
 		return val
 	}
 	return "ext"
-}
-
-func sectorSize(path string) (int, int) {
-	out, err := exec.Command(
-		"lsblk", "--noheadings", "--bytes", "--output=PHY-SEC,LOG-SEC").Output()
-	if err != nil {
-		fmt.Printf("  Error fetching sector size for `%s`: %v", path, err)
-		return defaultBlockSize, defaultBlockSize
-	}
-
-	// Output will be in the format: `    512     512`
-	vals := strings.Split(strings.TrimSpace(string(out)), " ")
-
-	if len(vals) < 2 {
-		fmt.Printf("  Error fetching sector size for `%s`: %s", path, string(out))
-		return defaultBlockSize, defaultBlockSize
-	}
-
-	// Physical sector is the first parameter
-	phySec, err := stringToInt(vals[0])
-	if err != nil {
-		fmt.Printf("  Error fetching sector size for `%s`: %v", path, err)
-		return defaultBlockSize, defaultBlockSize
-	}
-
-	for _, v := range vals[1:] {
-		if len(v) > 0 {
-			logSec, err := stringToInt(v)
-			if err != nil {
-				fmt.Printf("  Error fetching sector size for `%s`: %v", path, err)
-				return defaultBlockSize, defaultBlockSize
-			}
-			return phySec, logSec
-		}
-	}
-
-	fmt.Printf("  Error fetching sector size for `%s`: %s", path, string(out))
-	return defaultBlockSize, defaultBlockSize
 }
 
 func familyFlag(flag, family string) (string, error) {
