@@ -18,7 +18,7 @@ import (
 // restoreWritable restores a backup of the files to the writable partition
 // We don't use an image as we'd need to regenerate the encryption key
 func restoreWritable() error {
-	audit.Println("Backup writable partition to the restore partition")
+	audit.Println("Restore the writable partition from the backup")
 	// Mount the writable path
 	if err := core.Mount(core.PartitionTable.Writable, core.WritablePath); err != nil {
 		return err

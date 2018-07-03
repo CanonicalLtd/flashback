@@ -185,23 +185,22 @@ func Unmount(device string) error {
 }
 
 // CopyDirectory from one location to another
-func CopyDirectory(source, target string) error {
-	_ = os.MkdirAll(filepath.Dir(target), os.ModePerm)
-	out, err := exec.Command("rsync", "-a", source, target).CombinedOutput()
-	if len(out) > 0 {
-		audit.Println(string(out))
-	}
+func CopyDirectory(sourceDir, destDir string) (err error) {
+	// Make sure the target path exists
+	_ = os.MkdirAll(destDir, os.ModePerm)
+
+	out, err := exec.Command("cp", "-arv", sourceDir, destDir).Output()
+	audit.Println(string(out))
 	return err
 }
 
 // CopyFile from one location to another
 func CopyFile(source, target string) error {
+	// Make sure the target path exists
 	_ = os.MkdirAll(filepath.Dir(target), os.ModePerm)
-	out, err := exec.Command("cp", "-a", source, target).CombinedOutput()
-	if len(out) > 0 {
-		audit.Println(string(out))
-	}
 
+	out, err := exec.Command("cp", "-av", source, target).Output()
+	audit.Println(string(out))
 	return err
 }
 
