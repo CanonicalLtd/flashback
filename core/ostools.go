@@ -55,7 +55,7 @@ func FormatDisk(path, fstype, label string) error {
 	if logSec > defaultBlockSize {
 		optSector, err := familyFlag("sectorsize", family)
 		if err != nil {
-			fmt.Println(err)
+			audit.Println(err)
 		} else {
 			cmd = append(cmd, optSector)
 			cmd = append(cmd, string(logSec))
@@ -65,7 +65,7 @@ func FormatDisk(path, fstype, label string) error {
 	// Always set the force option
 	optForce, err := familyFlag("force", family)
 	if err != nil {
-		fmt.Println(err)
+		audit.Println(err)
 	} else {
 		cmd = append(cmd, optForce)
 	}
@@ -74,7 +74,7 @@ func FormatDisk(path, fstype, label string) error {
 		// Set the label on the disk
 		optLabel, err := familyFlag("label", family)
 		if err != nil {
-			fmt.Println(err)
+			audit.Println(err)
 		} else {
 			cmd = append(cmd, optLabel)
 			cmd = append(cmd, label)
@@ -85,13 +85,12 @@ func FormatDisk(path, fstype, label string) error {
 	cmd = append(cmd, path)
 
 	// Run the mkfs.<fstype> command
-	fmt.Println(mkfsCmd, cmd)
 	out, err := exec.Command(mkfsCmd, cmd...).CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
+		audit.Println(string(out))
 		return err
 	}
-	fmt.Println(string(out))
+	audit.Println(string(out))
 	return nil
 }
 

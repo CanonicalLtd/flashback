@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/CanonicalLtd/flashback/audit"
+	"github.com/CanonicalLtd/flashback/core"
 
 	"github.com/CanonicalLtd/flashback/bootprint"
 	"github.com/CanonicalLtd/flashback/config"
@@ -44,6 +45,7 @@ func Execute(args []string) error {
 		err = bootprint.CheckAndRun(execute.Execution.Check)
 		if err != nil {
 			audit.Println("Error in bootprint:", err)
+			retainLog(config.LogFileBootprint)
 			return err
 		}
 	}
@@ -53,8 +55,13 @@ func Execute(args []string) error {
 		err = reset.Run()
 		if err != nil {
 			audit.Println("Error in factory reset:", err)
+			retainLog(config.LogFileReset)
 		}
 	}
 
 	return err
+}
+
+func retainLog(filepath string) {
+	core.CopyFile(audit.DefaultLogFile, filepath)
 }

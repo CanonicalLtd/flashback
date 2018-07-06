@@ -17,7 +17,7 @@ func CheckAndRun(check bool) error {
 	// Find the partition devices
 	err := core.FindPartitions()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// Mount the restore path

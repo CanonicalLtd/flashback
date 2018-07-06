@@ -1,4 +1,4 @@
-# Partition labels and backup files
+# Partition labels and backup files (not used)
 restore:
   # - label: custom1
   #   file: custom1.img.gz
@@ -6,16 +6,6 @@ restore:
   # - label: custom2
   #   file: custom2.tar.gz
   #   type: tar
-
-# Enable full-disk encryption (accepts: true/false, yes/no, on/off)
-encrypt: true
-
-# Hooks for locking/unlocking the encrypted partition
-unlock-action: unlock-crypt-fs
-lock-action: lock-crypt-fs
-
-# Path to the log file
-logfile: /var/log/flashback.log
 
 # The files and directories to keep when performing a factory-reset
 retain:

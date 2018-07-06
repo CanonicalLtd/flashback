@@ -14,21 +14,19 @@ import (
 
 // Config defines the configuration parameters
 type Config struct {
-	LogFile             string `yaml:"logfile"`
-	EncryptFS           bool   `yaml:"encrypt"`
-	EncryptUnlockAction string `yaml:"unlock-action"`
-	EncryptLockAction   string `yaml:"lock-action"`
-	Backup              struct {
+	Backup struct {
 		Size int      `yaml:"size"`
 		Data []string `yaml:"data"`
 	} `yaml:"retain"`
 }
 
+// Default constants
 const (
 	defaultBackupSize      = 32
 	restorePartitionLabel  = "restore"
 	writablePartitionLabel = "writable"
-	logFilePath            = "/var/log/flashback.log"
+	LogFileBootprint       = "/var/log/flashback/bootprint.log"
+	LogFileReset           = "/var/log/flashback/reset.log"
 )
 
 // Store the stored configuration from the file
@@ -57,10 +55,6 @@ func Read(path string) error {
 }
 
 func setDefaults() {
-	if len(Store.LogFile) == 0 {
-		audit.Printf("Default the LogFile to `%s`\n", logFilePath)
-		Store.LogFile = logFilePath
-	}
 	if Store.Backup.Size <= 0 {
 		audit.Printf("Default the retained data size to `%d`\n", defaultBackupSize)
 		Store.Backup.Size = defaultBackupSize
