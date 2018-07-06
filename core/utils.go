@@ -6,7 +6,6 @@ package core
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -16,7 +15,6 @@ import (
 )
 
 const (
-	base             = "/sys/class/block"
 	dev              = "/dev"
 	defaultBlockSize = 512
 )
@@ -47,17 +45,6 @@ func stringToInt(s string) (int, error) {
 	cleaned := reg.ReplaceAllString(s, "")
 
 	return strconv.Atoi(cleaned)
-}
-
-func stringToInt64(s string) (int64, error) {
-	// Remove any control characters e.g. LF
-	reg, err := regexp.Compile("[^0-9]+")
-	if err != nil {
-		return 0, err
-	}
-	cleaned := reg.ReplaceAllString(s, "")
-
-	return strconv.ParseInt(cleaned, 10, 64)
 }
 
 // RootDeviceNameFromPath converts a path name from:
@@ -111,37 +98,6 @@ func DeviceNumberFromPath(path string) (int, error) {
 	}
 
 	return stringToInt(d)
-}
-
-// SysBlockFromDevice returns the /sys/class/block/<dev> from <dev>
-func SysBlockFromDevice(devName string) string {
-	return filepath.Join(base, devName)
-}
-
-func readSizeFromContent(path string) (int64, error) {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return 0, err
-	}
-
-	return stringToInt64(string(b))
-}
-
-func sgDiskFlag(flag string) string {
-	sgdiskFlags := map[string]string{
-		"boot":      "ef00",
-		"lvm":       "8e00",
-		"raid":      "fd00",
-		"bios_grub": "ef02",
-		"prep":      "4100",
-		"swap":      "8200",
-		"home":      "8302",
-		"linux":     "8300"}
-
-	if val, ok := sgdiskFlags[flag]; ok {
-		return val
-	}
-	return sgdiskFlags["linux"]
 }
 
 func mkfsCommand(fstype string) string {

@@ -43,8 +43,6 @@ func (s *coreSuite) TestUtils(c *check.C) {
 		{"DeviceNameFromPath", "/dev/mmcblk1p4", "", "mmcblk1p4", false},
 		{"DeviceNumberFromPath", "/dev/sdd3", "", "3", false},
 		{"DeviceNumberFromPath", "/dev/mmcblk1p4", "", "4", false},
-		{"SysBlockFromDevice", "sdd3", "", "/sys/class/block/sdd3", false},
-		{"SysBlockFromDevice", "mmcblk1p4", "", "/sys/class/block/mmcblk1p4", false},
 	}
 
 	for _, t := range tests {
@@ -57,8 +55,6 @@ func (s *coreSuite) TestUtils(c *check.C) {
 			s = core.DevicePathFromDevice(t.Input)
 		case "DeviceNameFromPath":
 			s = core.DeviceNameFromPath(t.Input)
-		case "SysBlockFromDevice":
-			s = core.SysBlockFromDevice(t.Input)
 		case "DevicePathFromNumber":
 			i, _ := strconv.Atoi(t.Input2)
 			s = core.DevicePathFromNumber(t.Input, i)

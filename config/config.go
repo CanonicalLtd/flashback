@@ -22,11 +22,9 @@ type Config struct {
 
 // Default constants
 const (
-	defaultBackupSize      = 32
-	restorePartitionLabel  = "restore"
-	writablePartitionLabel = "writable"
-	LogFileBootprint       = "/var/log/flashback/bootprint.log"
-	LogFileReset           = "/var/log/flashback/reset.log"
+	defaultBackupSize = 32
+	LogFileBootprint  = "/var/log/flashback/bootprint.log"
+	LogFileReset      = "/var/log/flashback/reset.log"
 )
 
 // Store the stored configuration from the file
